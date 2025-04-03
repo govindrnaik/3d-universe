@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Black Hole Visualization{% endblock %}
+
+{% block additional_styles %}
+/* Add any Black Hole specific styles here */
+#event-horizon-info {
+position: absolute;
+bottom: 80px;
+left: 50%;
+transform: translateX(-50%);
+color: white;
+background-color: rgba(0, 0, 0, 0.5);
+padding: 5px 10px;
+border-radius: 5px;
+font-family: sans-serif;
+font-size: 0.9em;
+z-index: 10;
+text-align: center;
+}
+
+/* Label styles for black hole components */
+.label {
+color: white;
+font-family: Arial, sans-serif;
+font-size: 12px;
+background-color: rgba(0, 0, 0, 0.5);
+padding: 2px 5px;
+border-radius: 3px;
+pointer-events: none;
+position: absolute;
+text-align: center;
+transform: translate(-50%, -50%);
+user-select: none;
+text-shadow: 0px 0px 2px #000000;
+border: 1px solid rgba(255, 255, 255, 0.2);
+z-index: 10;
+}
+
+.event-horizon-label {
+color: #00a8ff;
+font-weight: bold;
+}
+
+.black-hole-label {
+color: #ffffff;
+font-weight: bold;
+}
+
+.accretion-disk-label {
+color: #ffcc00;
+font-weight: bold;
+}
+
+/* Toggle for labels */
+#label-toggle {
+position: absolute;
+top: 10px;
+right: 10px;
+color: white;
+background-color: rgba(0, 0, 0, 0.5);
+padding: 5px 10px;
+border-radius: 5px;
+font-family: sans-serif;
+font-size: 0.9em;
+cursor: pointer;
+z-index: 10;
+border: 1px solid rgba(255, 255, 255, 0.3);
+}
+{% endblock %}
+
+{% block content %}
+<div id="event-horizon-info">Event Horizon</div>
+<div id="label-toggle">Toggle Labels</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Scene Setup ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Camera Controls ---
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    camera.position.set(0, 20, 100);
+    controls.update();
+
+    // --- Black Hole Visualization ---
+    // Original content from black_hole.html would go here
+
+    // Create starfield background
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.5,
+        transparent: true
+    });
+
+    const starsVertices = [];
+    for (let i = 0; i < 10000; i++) {
+        const x = (Math.random() - 0.5) * 2000;
+        const y = (Math.random() - 0.5) * 2000;
+        const z = (Math.random() - 0.5) * 2000;
+        starsVertices.push(x, y, z);
+    }
+
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+    const starField = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(starField);
+
+    // Black Hole
+    const blackHoleGeometry = new THREE.SphereGeometry(15, 64, 64);
+    const blackHoleMaterial = new THREE.MeshBasicMaterial({
+        color: 0x000000
+    });
+    const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
+    scene.add(blackHole);
+
+    // Event Horizon
+    const eventHorizonGeometry = new THREE.RingGeometry(15, 25, 64);
+    const eventHorizonMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            time: { value: 0 }
+        },
+        vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+        fragmentShader: `
+                uniform float time;
+                varying vec2 vUv;
+                void main() {
+                    float intensity = 0.8 - distance(vUv, vec2(0.5, 0.5)) * 1.9;
+                    vec3 color = mix(vec3(0.0, 0.3, 0.9), vec3(0.5, 0.0, 0.5), sin(time) * 0.5 + 0.5);
+                    gl_FragColor = vec4(color, intensity);
+                }
+            `,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
+
+    const eventHorizon = new THREE.Mesh(eventHorizonGeometry, eventHorizonMaterial);
+    eventHorizon.rotation.x = -Math.PI / 2;
+    scene.add(eventHorizon);
+
+    // Accretion Disk
+    const accretionDiskGeometry = new THREE.RingGeometry(25, 80, 64);
+    const accretionDiskMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            time: { value: 0 }
+        },
+        vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+        fragmentShader: `
+                uniform float time;
+                varying vec2 vUv;
+                
+                // Simple noise function
+                float noise(vec2 st) {
+                    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+                }
+                
+                void main() {
+                    float dist = distance(vUv, vec2(0.5, 0.5)) * 2.0;
+                    float ring = smoothstep(0.4, 0.5, dist) * smoothstep(1.0, 0.8, dist);
+                    
+                    // Rotating effect
+                    float angle = atan(vUv.y - 0.5, vUv.x - 0.5);
+                    float offset = noise(vec2(angle * 10.0, dist * 20.0 + time));
+                    
+                    // Hot inner region, cooler outer
+                    vec3 innerColor = vec3(1.0, 0.8, 0.3); // Yellow/orange
+                    vec3 outerColor = vec3(0.8, 0.2, 0.2); // Red
+                    vec3 color = mix(innerColor, outerColor, smoothstep(0.4, 0.8, dist));
+                    
+                    // Add some variation
+                    color *= 0.8 + 0.2 * offset;
+                    
+                    gl_FragColor = vec4(color, ring * (0.9 - 0.7 * dist));
+                }
+            `,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
+
+    const accretionDisk = new THREE.Mesh(accretionDiskGeometry, accretionDiskMaterial);
+    accretionDisk.rotation.x = -Math.PI / 2;
+    scene.add(accretionDisk);
+
+    // Gravitational Lensing Effect (simulated with particles)
+    const lensingGeometry = new THREE.BufferGeometry();
+    const lensingMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.8,
+        transparent: true,
+        opacity: 0.6
+    });
+
+    const lensingVertices = [];
+    for (let i = 0; i < 2000; i++) {
+        // Create particles in a shell around the black hole
+        const phi = Math.random() * Math.PI * 2;
+        const theta = Math.random() * Math.PI;
+        const radius = 150 + Math.random() * 50;
+
+        const x = radius * Math.sin(theta) * Math.cos(phi);
+        const y = radius * Math.sin(theta) * Math.sin(phi);
+        const z = radius * Math.cos(theta);
+
+        lensingVertices.push(x, y, z);
+    }
+
+    lensingGeometry.setAttribute('position', new THREE.Float32BufferAttribute(lensingVertices, 3));
+    const lensingParticles = new THREE.Points(lensingGeometry, lensingMaterial);
+    scene.add(lensingParticles);
+
+    // --- Label System ---
+    // Create labels for key components
+    let labelsVisible = true;
+    const labels = [];
+
+    function createLabel(text, className = '') {
+        const label = document.createElement('div');
+        label.className = 'label ' + className;
+        label.textContent = text;
+        document.body.appendChild(label);
+        return label;
+    }
+
+    // Function to update label positions
+    function updateLabelPosition(label, position, yOffset = 0) {
+        // Project the 3D position to screen coordinates
+        const tempPosition = position.clone();
+        if (yOffset) tempPosition.y += yOffset;
+
+        const vector = tempPosition.clone();
+        vector.project(camera);
+
+        // Convert to CSS coordinates
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+
+        // Set the label's position
+        label.style.left = x + 'px';
+        label.style.top = y + 'px';
+
+        // Hide if behind camera
+        if (vector.z > 1) {
+            label.style.display = 'none';
+        } else {
+            label.style.display = labelsVisible ? 'block' : 'none';
+        }
+    }
+
+    // Create labels for black hole components
+    const blackHoleLabel = createLabel('Black Hole', 'black-hole-label');
+    const eventHorizonLabel = createLabel('Event Horizon', 'event-horizon-label');
+    const accretionDiskLabel = createLabel('Accretion Disk', 'accretion-disk-label');
+    const gravitationalLensingLabel = createLabel('Gravitational Lensing', 'label');
+
+    labels.push(blackHoleLabel, eventHorizonLabel, accretionDiskLabel, gravitationalLensingLabel);
+
+    // Labels toggle functionality
+    document.getElementById('label-toggle').addEventListener('click', function () {
+        labelsVisible = !labelsVisible;
+        labels.forEach(label => {
+            label.style.display = labelsVisible ? 'block' : 'none';
+        });
+        this.textContent = labelsVisible ? 'Hide Labels' : 'Show Labels';
+    });
+
+    // --- Animation Loop ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+        const elapsedTime = clock.getElapsedTime();
+
+        // Update shader uniforms for time-based animations
+        eventHorizonMaterial.uniforms.time.value = elapsedTime;
+        accretionDiskMaterial.uniforms.time.value = elapsedTime;
+
+        // Slowly rotate accretion disk
+        accretionDisk.rotation.z += delta * 0.1;
+
+        // Simulate gravitational lensing with the particles
+        const positions = lensingGeometry.attributes.position.array;
+
+        for (let i = 0; i < positions.length; i += 3) {
+            // Get particle position
+            const x = positions[i];
+            const y = positions[i + 1];
+            const z = positions[i + 2];
+
+            // Calculate distance from black hole
+            const distance = Math.sqrt(x * x + y * y + z * z);
+
+            // Direction vector from black hole to particle
+            const dirX = x / distance;
+            const dirY = y / distance;
+            const dirZ = z / distance;
+
+            // Simple gravitational lensing effect - move particles slightly toward black hole
+            const gravitationalPull = 5 / Math.max(distance, 50);
+
+            positions[i] -= dirX * gravitationalPull * delta * 10;
+            positions[i + 1] -= dirY * gravitationalPull * delta * 10;
+            positions[i + 2] -= dirZ * gravitationalPull * delta * 10;
+
+            // Reset particles that get too close to the black hole
+            if (distance < 30) {
+                const phi = Math.random() * Math.PI * 2;
+                const theta = Math.random() * Math.PI;
+                const newRadius = 180 + Math.random() * 20;
+
+                positions[i] = newRadius * Math.sin(theta) * Math.cos(phi);
+                positions[i + 1] = newRadius * Math.sin(theta) * Math.sin(phi);
+                positions[i + 2] = newRadius * Math.cos(theta);
+            }
+        }
+
+        lensingGeometry.attributes.position.needsUpdate = true;
+
+        // Update label positions
+        updateLabelPosition(blackHoleLabel, blackHole.position);
+        updateLabelPosition(eventHorizonLabel, eventHorizon.position, 20);
+        updateLabelPosition(accretionDiskLabel, accretionDisk.position, 50);
+
+        // Position the gravitational lensing label in the general area
+        const lensingPosition = new THREE.Vector3(80, 30, 40);
+        updateLabelPosition(gravitationalLensingLabel, lensingPosition);
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // --- Handle Window Resize ---
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }, false);
+
+    // --- Start Animation ---
+    animate();
+</script>
+{% endblock %}

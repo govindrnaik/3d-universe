@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+
+{% block title %}Mangalyaan 3 Mission Visualization{% endblock %}
+
+{% block additional_styles %}
+/* Mission stage indicator */
+#mission-stage {
+position: absolute;
+top: 10px;
+right: 10px;
+background-color: rgba(0, 0, 0, 0.7);
+color: #ffffff;
+padding: 10px 15px;
+border-radius: 5px;
+font-family: sans-serif;
+font-size: 1.1em;
+z-index: 10;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+border: 1px solid rgba(255, 107, 61, 0.5);
+}
+
+/* Mission controls */
+#mission-controls {
+position: absolute;
+bottom: 80px;
+left: 50%;
+transform: translateX(-50%);
+background-color: rgba(0, 0, 0, 0.7);
+padding: 10px;
+border-radius: 5px;
+display: flex;
+gap: 10px;
+z-index: 10;
+border: 1px solid rgba(255, 107, 61, 0.3);
+}
+
+.mission-button {
+background-color: rgba(230, 80, 20, 0.8);
+color: white;
+border: none;
+padding: 6px 12px;
+border-radius: 3px;
+font-family: sans-serif;
+cursor: pointer;
+transition: background-color 0.3s;
+font-weight: bold;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+.mission-button:hover {
+background-color: rgba(255, 100, 30, 0.9);
+}
+
+.mission-button:disabled {
+background-color: rgba(100, 100, 100, 0.7);
+cursor: not-allowed;
+}
+
+/* Information panel */
+#info-panel {
+position: absolute;
+left: 10px;
+top: 50px;
+width: 280px;
+background-color: rgba(0, 0, 0, 0.8);
+color: #ffffff;
+padding: 15px;
+border-radius: 5px;
+font-family: sans-serif;
+z-index: 10;
+border: 1px solid rgba(255, 107, 61, 0.5);
+}
+
+#info-panel h3 {
+margin-top: 0;
+color: #ff6b3d;
+border-bottom: 1px solid rgba(255, 107, 61, 0.5);
+padding-bottom: 5px;
+text-shadow: 0px 0px 3px rgba(0, 0, 0, 1);
+}
+
+#info-panel p {
+margin-bottom: 10px;
+font-size: 0.9em;
+line-height: 1.4;
+color: #e6e6e6;
+}
+
+/* Labels for objects */
+.label {
+color: white;
+font-family: Arial, sans-serif;
+font-size: 12px;
+background-color: rgba(0, 0, 0, 0.7);
+padding: 2px 5px;
+border-radius: 3px;
+pointer-events: none;
+position: absolute;
+text-align: center;
+transform: translate(-50%, -50%);
+user-select: none;
+z-index: 10;
+text-shadow: 0px 0px 4px #000000;
+border: 1px solid rgba(255, 255, 255, 0.3);
+font-weight: bold;
+}
+
+.earth-label {
+color: #78cfff;
+border-color: rgba(120, 207, 255, 0.5);
+}
+
+.mars-label {
+color: #ff6b3d;
+border-color: rgba(255, 107, 61, 0.5);
+}
+
+.spacecraft-label {
+color: #ffcc00;
+border-color: rgba(255, 204, 0, 0.5);
+}
+
+/* Toggle for labels */
+#label-toggle {
+position: absolute;
+top: 10px;
+right: 120px;
+color: white;
+background-color: rgba(0, 0, 0, 0.7);
+padding: 5px 10px;
+border-radius: 5px;
+font-family: sans-serif;
+font-size: 0.9em;
+cursor: pointer;
+z-index: 10;
+border: 1px solid rgba(255, 107, 61, 0.3);
+}
+
+/* Timeline slider */
+#timeline-container {
+position: absolute;
+bottom: 130px;
+left: 50%;
+transform: translateX(-50%);
+width: 80%;
+max-width: 600px;
+background-color: rgba(0, 0, 0, 0.8);
+padding: 15px;
+border-radius: 5px;
+z-index: 10;
+border: 1px solid rgba(255, 107, 61, 0.3);
+}
+
+#timeline-slider {
+width: 100%;
+margin-bottom: 10px;
+accent-color: #ff6b3d;
+}
+
+#timeline-date {
+text-align: center;
+color: white;
+font-family: sans-serif;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Distance indicator */
+#distance-indicator {
+position: absolute;
+bottom: 180px;
+left: 50%;
+transform: translateX(-50%);
+width: 80%;
+max-width: 600px;
+text-align: center;
+color: white;
+font-family: sans-serif;
+font-size: 0.9em;
+z-index: 10;
+background-color: rgba(0, 0, 0, 0.6);
+padding: 5px 10px;
+border-radius: 5px;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+border: 1px solid rgba(255, 107, 61, 0.3);
+}
+{% endblock %}
+
+{% block content %}
+<div id="mission-stage">Current Stage: Launch Preparation</div>
+<div id="label-toggle">Toggle Labels</div>
+
+<div id="info-panel">
+    <h3>Mangalyaan 3 Mission</h3>
+    <p>India's third Mars Orbiter Mission aims to study the Martian atmosphere, surface features, and look for signs of
+        water or methane, advancing our understanding of Mars.</p>
+    <p>Launch Date: November 2025 (Projected)</p>
+    <p>Mars Orbit Insertion: September 2026 (Projected)</p>
+    <p id="mission-info">Mission Information will be displayed here based on the current stage.</p>
+</div>
+
+<div id="distance-indicator">Distance from Earth to Mars: 0 million km</div>
+
+<div id="timeline-container">
+    <input type="range" id="timeline-slider" min="0" max="5" value="0" step="1">
+    <div id="timeline-date">November 2025 - Launch Phase</div>
+</div>
+
+<div id="mission-controls">
+    <button id="prev-stage" class="mission-button" disabled>Previous Stage</button>
+    <button id="play-pause" class="mission-button">Play</button>
+    <button id="next-stage" class="mission-button">Next Stage</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Scene Setup ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Background Stars ---
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 1.2,
+        transparent: true,
+        opacity: 0.8
+    });
+
+    const starsVertices = [];
+    for (let i = 0; i < 15000; i++) {
+        const x = (Math.random() - 0.5) * 15000;
+        const y = (Math.random() - 0.5) * 15000;
+        const z = (Math.random() - 0.5) * 15000;
+        starsVertices.push(x, y, z);
+    }
+
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+    const starField = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(starField);
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    sunLight.position.set(5000, 3000, 5000);
+    scene.add(sunLight);
+
+    // --- Camera Controls ---
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    camera.position.set(0, 300, 800);
+    controls.update();
+
+    // --- Create Sun ---
+    const sunGeometry = new THREE.SphereGeometry(200, 64, 64);
+    const sunMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00,
+        emissive: 0xffff00
+    });
+    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    sun.position.set(-3000, 0, -5000); // Positioned far away to provide light
+    scene.add(sun);
+
+    // --- Create Earth ---
+    const earthRadius = 100;
+    const earthGeometry = new THREE.SphereGeometry(earthRadius, 64, 64);
+    const earthMaterial = new THREE.MeshPhongMaterial({
+        color: 0x2244aa,
+        emissive: 0x112244,
+        specular: 0x222222,
+        shininess: 25
+    });
+    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    scene.add(earth);
+
+    // Add atmosphere to Earth
+    const atmosphereGeometry = new THREE.SphereGeometry(earthRadius * 1.05, 64, 64);
+    const atmosphereMaterial = new THREE.MeshPhongMaterial({
+        color: 0x88aaff,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.BackSide
+    });
+    const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+    earth.add(atmosphere);
+
+    // --- Create Mars ---
+    const marsRadius = 53; // Mars is about 53% the size of Earth
+    const marsDistance = 3000; // Scaled distance between Earth and Mars
+    const marsGeometry = new THREE.SphereGeometry(marsRadius, 64, 64);
+    const marsMaterial = new THREE.MeshPhongMaterial({
+        color: 0xE27B58, // Mars reddish color
+        emissive: 0x401000,
+        shininess: 5
+    });
+    const mars = new THREE.Mesh(marsGeometry, marsMaterial);
+    mars.position.set(marsDistance, 0, 0); // Position Mars at a distance from Earth
+    scene.add(mars);
+
+    // --- Create Mangalyaan 3 Spacecraft ---
+    const spacecraftGroup = new THREE.Group();
+    scene.add(spacecraftGroup);
+
+    // Main spacecraft body
+    const bodyGeometry = new THREE.BoxGeometry(20, 10, 20);
+    const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc });
+    const spacecraftBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    spacecraftGroup.add(spacecraftBody);
+
+    // Solar panels
+    const solarPanelGeometry = new THREE.BoxGeometry(70, 1, 20);
+    const solarPanelMaterial = new THREE.MeshPhongMaterial({
+        color: 0x2255aa,
+        shininess: 100
+    });
+    const solarPanel1 = new THREE.Mesh(solarPanelGeometry, solarPanelMaterial);
+    solarPanel1.position.set(0, 0, 20);
+    spacecraftGroup.add(solarPanel1);
+
+    const solarPanel2 = new THREE.Mesh(solarPanelGeometry, solarPanelMaterial);
+    solarPanel2.position.set(0, 0, -20);
+    spacecraftGroup.add(solarPanel2);
+
+    // Communication antenna (dish)
+    const antennaGeometry = new THREE.CylinderGeometry(0, 10, 15, 16);
+    antennaGeometry.rotateX(Math.PI / 2);
+    const antennaMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+    const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+    antenna.position.set(15, 0, 0);
+    antenna.rotation.z = Math.PI / 2;
+    spacecraftGroup.add(antenna);
+
+    // Propulsion module
+    const engineGeometry = new THREE.CylinderGeometry(5, 8, 15, 16);
+    const engineMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+    const engine = new THREE.Mesh(engineGeometry, engineMaterial);
+    engine.position.set(-15, 0, 0);
+    engine.rotation.z = Math.PI / 2;
+    spacecraftGroup.add(engine);
+
+    // Scientific instruments (simplified as small boxes)
+    const instrumentGeometry = new THREE.BoxGeometry(5, 3, 5);
+    const instrumentMaterial = new THREE.MeshPhongMaterial({ color: 0xffaa00 });
+
+    for (let i = 0; i < 4; i++) {
+        const instrument = new THREE.Mesh(instrumentGeometry, instrumentMaterial);
+        instrument.position.set(
+            -5 + Math.random() * 10,
+            6,
+            -5 + Math.random() * 10
+        );
+        spacecraftGroup.add(instrument);
+    }
+
+    // Initial position of spacecraft
+    spacecraftGroup.position.set(0, earthRadius + 20, 0);
+    spacecraftGroup.scale.set(0.8, 0.8, 0.8);
+
+    // --- Create Labels ---
+    function createLabel(text, className = '') {
+        const label = document.createElement('div');
+        label.className = 'label ' + className;
+        label.textContent = text;
+        document.body.appendChild(label);
+        return label;
+    }
+
+    // Create labels for key objects
+    const earthLabel = createLabel('Earth', 'earth-label');
+    const marsLabel = createLabel('Mars', 'mars-label');
+    const spacecraftLabel = createLabel('Mangalyaan 3', 'spacecraft-label');
+
+    // Function to update label positions
+    function updateLabelPositions() {
+        updateLabelPosition(earthLabel, earth.position);
+        updateLabelPosition(marsLabel, mars.position);
+        updateLabelPosition(spacecraftLabel, spacecraftGroup.position, 30);
+    }
+
+    // Helper function to update a single label's position
+    function updateLabelPosition(label, position3D, yOffset = 0) {
+        const tempPosition = position3D.clone();
+        if (yOffset) tempPosition.y += yOffset;
+
+        // Project the 3D position to screen coordinates
+        const vector = tempPosition.clone();
+        vector.project(camera);
+
+        // Convert to CSS coordinates
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+
+        // Set the label's position
+        label.style.left = x + 'px';
+        label.style.top = y + 'px';
+
+        // Hide if behind camera
+        if (vector.z > 1) {
+            label.style.display = 'none';
+        } else {
+            label.style.display = 'block';
+        }
+    }
+
+    // --- Mission Timeline and Stages ---
+    const missionStages = [
+        {
+            name: "Launch Phase",
+            date: "November 2025",
+            description: "Mangalyaan 3 launches aboard GSLV MkIII from Satish Dhawan Space Centre, Sriharikota. The rocket uses multiple stages to reach escape velocity, placing the spacecraft in an initial Earth orbit before transitioning to a heliocentric Mars transfer orbit.",
+            cameraPosition: [0, 300, 800],
+            spacecraftPosition: [0, earthRadius + 20, 0],
+            earthPosition: [0, 0, 0],
+            marsPosition: [marsDistance, 0, 0],
+            earthMarsDistance: marsDistance
+        },
+        {
+            name: "Early Cruise Phase",
+            date: "December 2025",
+            description: "The spacecraft leaves Earth's orbit and begins its journey toward Mars. Solar panels deploy fully to capture energy from the Sun. The spacecraft maintains communication with Earth while its instruments undergo calibration.",
+            cameraPosition: [300, 200, 800],
+            spacecraftPosition: [500, 100, 0],
+            earthPosition: [0, 0, 0],
+            marsPosition: [marsDistance, 0, 0],
+            earthMarsDistance: marsDistance
+        },
+        {
+            name: "Mid Cruise Phase - Course Correction",
+            date: "March 2026",
+            description: "As the spacecraft traverses the interplanetary void, it performs trajectory correction maneuvers to ensure precise alignment for Mars orbital insertion. Onboard computers continuously calculate the spacecraft's position relative to Mars and Earth.",
+            cameraPosition: [1000, 400, 800],
+            spacecraftPosition: [1500, 150, 100],
+            earthPosition: [0, 0, 0],
+            marsPosition: [marsDistance, 0, 0],
+            earthMarsDistance: marsDistance
+        },
+        {
+            name: "Approach Phase",
+            date: "August 2026",
+            description: "Mangalyaan 3 approaches Mars, preparing for orbit insertion. The spacecraft begins collecting preliminary data on the Martian atmosphere and surface. All systems are checked for the critical Mars Orbit Insertion maneuver.",
+            cameraPosition: [2000, 200, 500],
+            spacecraftPosition: [marsDistance - 300, 100, 50],
+            earthPosition: [0, 0, 0],
+            marsPosition: [marsDistance, 0, 0],
+            earthMarsDistance: marsDistance
+        },
+        {
+            name: "Mars Orbit Insertion (MOI)",
+            date: "September 2026",
+            description: "The most critical phase of the mission: the spacecraft fires its engines to slow down and be captured by Mars' gravity. The burn must be precisely executed to achieve the desired elliptical orbit around Mars.",
+            cameraPosition: [marsDistance - 50, 150, 150],
+            spacecraftPosition: [marsDistance - 80, 80, 0],
+            earthPosition: [0, 0, 0],
+            marsPosition: [marsDistance, 0, 0],
+            earthMarsDistance: marsDistance
+        },
+        {
+            name: "Science Operations Phase",
+            date: "October 2026 onwards",
+            description: "Mangalyaan 3 begins its primary science mission, orbiting Mars and collecting data. High-resolution cameras capture images of the Martian surface while sensors analyze the atmosphere, looking for methane and studying the planet's climate and geology.",
+            cameraPosition: [marsDistance + 50, 70, 100],
+            spacecraftPosition: [marsDistance + 20, 120, 80],
+            earthPosition: [0, 0, 0],
+            marsPosition: [marsDistance, 0, 0],
+            earthMarsDistance: marsDistance
+        }
+    ];
+
+    let currentStage = 0;
+    let isPlaying = false;
+    let animationProgress = 0;
+    let transitionTimer = null;
+
+    // DOM elements
+    const missionStageElement = document.getElementById('mission-stage');
+    const missionInfoElement = document.getElementById('mission-info');
+    const prevStageButton = document.getElementById('prev-stage');
+    const nextStageButton = document.getElementById('next-stage');
+    const playPauseButton = document.getElementById('play-pause');
+    const timelineSlider = document.getElementById('timeline-slider');
+    const timelineDate = document.getElementById('timeline-date');
+    const distanceIndicator = document.getElementById('distance-indicator');
+
+    // Function to update mission info based on current stage
+    function updateMissionInfo() {
+        const stage = missionStages[currentStage];
+        missionStageElement.textContent = `Current Stage: ${stage.name}`;
+        missionInfoElement.textContent = stage.description;
+        timelineDate.textContent = `${stage.date} - ${stage.name}`;
+        timelineSlider.value = currentStage;
+
+        // Calculate approximate distance between Earth and Mars
+        const earthPosition = new THREE.Vector3(...stage.earthPosition);
+        const marsPosition = new THREE.Vector3(...stage.marsPosition);
+        const distance = earthPosition.distanceTo(marsPosition);
+
+        // Update distance indicator (convert to millions of km for display)
+        const distanceInMillionsKm = (distance / 100).toFixed(1); // Scaling factor for visual representation
+        distanceIndicator.textContent = `Distance from Earth to Mars: ${distanceInMillionsKm} million km`;
+
+        // Update button states
+        prevStageButton.disabled = currentStage === 0;
+        nextStageButton.disabled = currentStage === missionStages.length - 1;
+    }
+
+    // Function to handle stage transitions
+    function goToStage(stageIndex, animate = true) {
+        // Clear any existing animations
+        if (transitionTimer) clearTimeout(transitionTimer);
+
+        currentStage = stageIndex;
+        animationProgress = 0;
+
+        updateMissionInfo();
+
+        if (!animate) {
+            // Instant position change
+            const targetStage = missionStages[currentStage];
+            camera.position.set(...targetStage.cameraPosition);
+            spacecraftGroup.position.set(...targetStage.spacecraftPosition);
+            controls.target.copy(spacecraftGroup.position);
+            controls.update();
+        }
+    }
+
+    // Event listener for the timeline slider
+    timelineSlider.addEventListener('input', function () {
+        goToStage(parseInt(this.value), false);
+    });
+
+    // Event listeners for control buttons
+    prevStageButton.addEventListener('click', function () {
+        if (currentStage > 0) {
+            goToStage(currentStage - 1);
+        }
+    });
+
+    nextStageButton.addEventListener('click', function () {
+        if (currentStage < missionStages.length - 1) {
+            goToStage(currentStage + 1);
+        }
+    });
+
+    playPauseButton.addEventListener('click', function () {
+        isPlaying = !isPlaying;
+        this.textContent = isPlaying ? 'Pause' : 'Play';
+
+        if (isPlaying && currentStage === missionStages.length - 1) {
+            // If at the end, restart from beginning
+            goToStage(0);
+        }
+    });
+
+    // --- Animation Loop ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+
+        // Update controls
+        controls.update();
+
+        // Rotate Earth and Mars
+        earth.rotation.y += delta * 0.1;
+        mars.rotation.y += delta * 0.08; // Mars rotates slightly slower than Earth
+
+        // Handle automated playback
+        if (isPlaying) {
+            animationProgress += delta * 0.2; // Speed control
+
+            if (animationProgress >= 1) {
+                animationProgress = 0;
+
+                // Move to next stage if not at the end
+                if (currentStage < missionStages.length - 1) {
+                    goToStage(currentStage + 1);
+                } else {
+                    isPlaying = false;
+                    playPauseButton.textContent = 'Play';
+                }
+            }
+
+            // Interpolate between current and next stage for smooth transitions
+            if (currentStage < missionStages.length - 1) {
+                const currentPos = new THREE.Vector3(...missionStages[currentStage].spacecraftPosition);
+                const nextPos = new THREE.Vector3(...missionStages[currentStage + 1].spacecraftPosition);
+                spacecraftGroup.position.lerpVectors(currentPos, nextPos, animationProgress);
+
+                const currentCamPos = new THREE.Vector3(...missionStages[currentStage].cameraPosition);
+                const nextCamPos = new THREE.Vector3(...missionStages[currentStage + 1].cameraPosition);
+                camera.position.lerpVectors(currentCamPos, nextCamPos, animationProgress);
+
+                controls.target.copy(spacecraftGroup.position);
+            }
+        }
+
+        // Slowly rotate spacecraft for visual interest
+        spacecraftGroup.rotation.y += delta * 0.05;
+
+        // Update label positions
+        updateLabelPositions();
+
+        // Add visual effects for the engine during maneuvers
+        if (currentStage === 0 || currentStage === 4) {
+            // Thruster effects during launch and Mars orbit insertion
+            if (Math.random() > 0.7) {
+                const thrusterGeometry = new THREE.SphereGeometry(2, 8, 8);
+                const thrusterMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff9500,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const thruster = new THREE.Mesh(thrusterGeometry, thrusterMaterial);
+
+                // Position at the engine
+                const enginePosition = new THREE.Vector3();
+                engine.getWorldPosition(enginePosition);
+
+                thruster.position.copy(enginePosition);
+                thruster.position.x -= 20; // Offset to position at engine exhaust
+
+                scene.add(thruster);
+
+                // Animate and remove the thruster particle
+                const startTime = clock.elapsedTime;
+                function animateThruster() {
+                    const elapsed = clock.elapsedTime - startTime;
+                    if (elapsed > 1) {
+                        scene.remove(thruster);
+                        return;
+                    }
+
+                    thruster.position.x -= 5 * delta;
+                    thruster.material.opacity -= delta;
+                    thruster.scale.multiplyScalar(1 + delta);
+
+                    requestAnimationFrame(animateThruster);
+                }
+
+                animateThruster();
+            }
+        }
+
+        // Render the scene
+        renderer.render(scene, camera);
+    }
+
+    // --- Handle Window Resize ---
+    window.addEventListener('resize', function () {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initialize the scene
+    updateMissionInfo();
+
+    // Start animation loop
+    animate();
+</script>
+{% endblock %}

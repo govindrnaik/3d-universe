@@ -1,0 +1,1032 @@
+{% extends "base.html" %}
+
+{% block title %}Voyager 1 Mission Visualization{% endblock %}
+
+{% block additional_styles %}
+/* Mission stage indicator */
+#mission-stage {
+position: absolute;
+top: 10px;
+right: 10px;
+background-color: rgba(0, 0, 0, 0.7);
+color: #ffffff;
+padding: 10px 15px;
+border-radius: 5px;
+font-family: sans-serif;
+font-size: 1.1em;
+z-index: 10;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+border: 1px solid rgba(64, 120, 192, 0.5);
+}
+
+/* Mission controls */
+#mission-controls {
+position: absolute;
+bottom: 80px;
+left: 50%;
+transform: translateX(-50%);
+background-color: rgba(0, 0, 0, 0.7);
+padding: 10px;
+border-radius: 5px;
+display: flex;
+gap: 10px;
+z-index: 10;
+border: 1px solid rgba(64, 120, 192, 0.3);
+}
+
+.mission-button {
+background-color: rgba(30, 100, 180, 0.8);
+color: white;
+border: none;
+padding: 6px 12px;
+border-radius: 3px;
+font-family: sans-serif;
+cursor: pointer;
+transition: background-color 0.3s;
+font-weight: bold;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+.mission-button:hover {
+background-color: rgba(50, 120, 220, 0.9);
+}
+
+.mission-button:disabled {
+background-color: rgba(100, 100, 100, 0.7);
+cursor: not-allowed;
+}
+
+/* Information panel */
+#info-panel {
+position: absolute;
+left: 10px;
+top: 50px;
+width: 300px;
+background-color: rgba(0, 0, 0, 0.8);
+color: #ffffff;
+padding: 15px;
+border-radius: 5px;
+font-family: sans-serif;
+z-index: 10;
+border: 1px solid rgba(64, 120, 192, 0.5);
+}
+
+#info-panel h3 {
+margin-top: 0;
+color: #64b5f6;
+border-bottom: 1px solid rgba(100, 181, 246, 0.5);
+padding-bottom: 5px;
+text-shadow: 0px 0px 3px rgba(0, 0, 0, 1);
+}
+
+#info-panel p {
+margin-bottom: 10px;
+font-size: 0.9em;
+line-height: 1.4;
+color: #e6e6e6;
+}
+
+#mission-year {
+color: #ffcc00;
+font-weight: bold;
+}
+
+/* Labels for objects */
+.label {
+color: white;
+font-family: Arial, sans-serif;
+font-size: 12px;
+background-color: rgba(0, 0, 0, 0.7);
+padding: 2px 5px;
+border-radius: 3px;
+pointer-events: none;
+position: absolute;
+text-align: center;
+transform: translate(-50%, -50%);
+user-select: none;
+z-index: 10;
+text-shadow: 0px 0px 4px #000000;
+border: 1px solid rgba(255, 255, 255, 0.3);
+font-weight: bold;
+}
+
+.planet-label {
+color: #78cfff;
+border-color: rgba(120, 207, 255, 0.5);
+}
+
+.voyager-label {
+color: #ffcc00;
+border-color: rgba(255, 204, 0, 0.5);
+}
+
+/* Timeline slider */
+#timeline-container {
+position: absolute;
+bottom: 130px;
+left: 50%;
+transform: translateX(-50%);
+width: 80%;
+max-width: 600px;
+background-color: rgba(0, 0, 0, 0.8);
+padding: 15px;
+border-radius: 5px;
+z-index: 10;
+border: 1px solid rgba(64, 120, 192, 0.3);
+}
+
+#timeline-slider {
+width: 100%;
+margin-bottom: 10px;
+accent-color: #64b5f6;
+}
+
+#timeline-date {
+text-align: center;
+color: white;
+font-family: sans-serif;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Distance indicator */
+#distance-indicator {
+position: absolute;
+bottom: 180px;
+left: 50%;
+transform: translateX(-50%);
+width: 80%;
+max-width: 600px;
+text-align: center;
+color: white;
+font-family: sans-serif;
+font-size: 0.9em;
+z-index: 10;
+background-color: rgba(0, 0, 0, 0.6);
+padding: 5px 10px;
+border-radius: 5px;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+border: 1px solid rgba(64, 120, 192, 0.3);
+}
+
+/* Golden Record */
+#golden-record {
+position: absolute;
+top: 10px;
+left: 10px;
+width: 80px;
+height: 80px;
+background-color: gold;
+border-radius: 50%;
+box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+cursor: pointer;
+z-index: 20;
+display: flex;
+align-items: center;
+justify-content: center;
+border: 2px solid rgba(255, 215, 0, 0.8);
+transition: transform 0.3s ease;
+overflow: hidden;
+}
+
+#golden-record:hover {
+transform: scale(1.1);
+}
+
+#golden-record::after {
+content: "";
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 20px;
+height: 20px;
+background-color: black;
+border-radius: 50%;
+border: 1px solid rgba(255, 215, 0, 0.8);
+}
+
+#golden-record-info {
+position: absolute;
+top: 10px;
+left: 100px;
+width: 280px;
+background-color: rgba(0, 0, 0, 0.8);
+color: white;
+padding: 10px;
+border-radius: 5px;
+font-family: sans-serif;
+z-index: 19;
+font-size: 0.9em;
+line-height: 1.4;
+border: 1px solid gold;
+display: none;
+}
+
+/* Power indicator */
+#power-indicator {
+position: absolute;
+top: 100px;
+left: 10px;
+width: 80px;
+height: 20px;
+background-color: rgba(0, 0, 0, 0.7);
+border-radius: 5px;
+z-index: 20;
+border: 1px solid rgba(255, 255, 255, 0.3);
+overflow: hidden;
+}
+
+#power-level {
+height: 100%;
+background: linear-gradient(to right, #ff0000, #ffff00, #00ff00);
+width: 100%;
+transition: width 1s ease;
+}
+
+#power-text {
+position: absolute;
+top: 125px;
+left: 10px;
+color: white;
+font-family: sans-serif;
+font-size: 0.8em;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+z-index: 20;
+}
+{% endblock %}
+
+{% block content %}
+<div id="mission-stage">Current Stage: Launch Preparation (1977)</div>
+
+<div id="info-panel">
+    <h3>Voyager 1 Mission</h3>
+    <p>NASA's Voyager 1, launched on September 5, 1977, is the farthest human-made object from Earth and the first
+        spacecraft to enter interstellar space.</p>
+    <p id="mission-year">Current Year: 1977</p>
+    <p id="mission-info">Preparing for launch at Cape Canaveral, Florida. Voyager 1 is mounted atop a Titan IIIE-Centaur
+        rocket, ready to begin its historic journey to the outer planets and beyond.</p>
+</div>
+
+<div id="distance-indicator">Distance from Earth: 0 million km</div>
+
+<div id="timeline-container">
+    <input type="range" id="timeline-slider" min="0" max="6" value="0" step="1">
+    <div id="timeline-date">September 5, 1977 - Launch Day</div>
+</div>
+
+<div id="mission-controls">
+    <button id="prev-stage" class="mission-button" disabled>Previous Stage</button>
+    <button id="play-pause" class="mission-button">Play</button>
+    <button id="next-stage" class="mission-button">Next Stage</button>
+</div>
+
+<div id="golden-record" title="Voyager Golden Record"></div>
+<div id="golden-record-info">
+    <strong>The Golden Record</strong>: A time capsule intended to communicate the story of Earth to extraterrestrials.
+    It contains sounds and images of Earth, including music from different cultures, natural sounds, greetings in 55
+    languages, and scientific information.
+</div>
+
+<div id="power-indicator">
+    <div id="power-level"></div>
+</div>
+<div id="power-text">RTG Power: 100%</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Scene Setup ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 50000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Background Stars ---
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 1.2,
+        transparent: true,
+        opacity: 0.8
+    });
+
+    const starsVertices = [];
+    for (let i = 0; i < 15000; i++) {
+        const x = (Math.random() - 0.5) * 50000;
+        const y = (Math.random() - 0.5) * 50000;
+        const z = (Math.random() - 0.5) * 50000;
+        starsVertices.push(x, y, z);
+    }
+
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+    const starField = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(starField);
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    sunLight.position.set(5000, 3000, 5000);
+    scene.add(sunLight);
+
+    // --- Camera Controls ---
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    camera.position.set(0, 300, 800);
+    controls.update();
+
+    // --- Create Sun ---
+    const sunGeometry = new THREE.SphereGeometry(200, 64, 64);
+    const sunMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00,
+        emissive: 0xffff00
+    });
+    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    sun.position.set(-3000, 0, -5000); // Positioned far away to provide light
+    scene.add(sun);
+
+    // --- Create Earth ---
+    const earthRadius = 100;
+    const earthGeometry = new THREE.SphereGeometry(earthRadius, 64, 64);
+    const earthMaterial = new THREE.MeshPhongMaterial({
+        color: 0x2244aa,
+        emissive: 0x112244,
+        specular: 0x222222,
+        shininess: 25
+    });
+    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    scene.add(earth);
+
+    // Add atmosphere to Earth
+    const atmosphereGeometry = new THREE.SphereGeometry(earthRadius * 1.05, 64, 64);
+    const atmosphereMaterial = new THREE.MeshPhongMaterial({
+        color: 0x88aaff,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.BackSide
+    });
+    const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+    earth.add(atmosphere);
+
+    // --- Create Jupiter ---
+    const jupiterRadius = 250; // Jupiter is ~11x Earth's radius (simplified)
+    const jupiterDistance = 2000; // Scaled distance 
+    const jupiterGeometry = new THREE.SphereGeometry(jupiterRadius, 64, 64);
+    const jupiterMaterial = new THREE.MeshPhongMaterial({
+        color: 0xE0C8A0, // Jupiter's color
+        emissive: 0x402000,
+        shininess: 5
+    });
+    const jupiter = new THREE.Mesh(jupiterGeometry, jupiterMaterial);
+    jupiter.position.set(jupiterDistance, 0, 0); // Position Jupiter at a distance from Earth
+    scene.add(jupiter);
+
+    // --- Create Saturn ---
+    const saturnRadius = 200; // Saturn is ~9.5x Earth's radius (simplified)
+    const saturnDistance = 3500; // Scaled distance
+    const saturnGeometry = new THREE.SphereGeometry(saturnRadius, 64, 64);
+    const saturnMaterial = new THREE.MeshPhongMaterial({
+        color: 0xE6D2A0, // Saturn's yellowish color
+        emissive: 0x302010,
+        shininess: 5
+    });
+    const saturn = new THREE.Mesh(saturnGeometry, saturnMaterial);
+    saturn.position.set(saturnDistance, 0, 0); // Position Saturn at a distance from Earth
+    scene.add(saturn);
+
+    // Saturn Rings
+    const ringInnerRadius = saturnRadius * 1.2;
+    const ringOuterRadius = saturnRadius * 2.5;
+    const ringGeometry = new THREE.RingGeometry(ringInnerRadius, ringOuterRadius, 64);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0xCCBB99,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+    });
+    const rings = new THREE.Mesh(ringGeometry, ringMaterial);
+    rings.rotation.x = Math.PI / 2; // Rotate rings to be horizontal
+    saturn.add(rings);
+
+    // --- Create Solar System Boundary (Heliopause) ---
+    const heliopauseRadius = 6000; // Scaled distance to heliopause
+    const heliopauseGeometry = new THREE.SphereGeometry(heliopauseRadius, 64, 64);
+    const heliopauseMaterial = new THREE.MeshBasicMaterial({
+        color: 0x0055ff,
+        transparent: true,
+        opacity: 0.05,
+        side: THREE.BackSide,
+        wireframe: true
+    });
+    const heliopause = new THREE.Mesh(heliopauseGeometry, heliopauseMaterial);
+    scene.add(heliopause);
+
+    // --- Create Launch Rocket (Titan IIIE) ---
+    const rocketGroup = new THREE.Group();
+    scene.add(rocketGroup);
+
+    // Rocket body
+    const rocketBodyGeometry = new THREE.CylinderGeometry(15, 15, 120, 20);
+    const rocketBodyMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+    const rocketBody = new THREE.Mesh(rocketBodyGeometry, rocketBodyMaterial);
+    rocketGroup.add(rocketBody);
+
+    // Rocket nose cone
+    const noseConeGeometry = new THREE.ConeGeometry(15, 30, 20);
+    const noseCone = new THREE.Mesh(noseConeGeometry, rocketBodyMaterial);
+    noseCone.position.y = 75;
+    rocketGroup.add(noseCone);
+
+    // Rocket boosters
+    const boosterGeometry = new THREE.CylinderGeometry(8, 8, 80, 16);
+    const boosterMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
+
+    // Add 2 side boosters
+    const booster1 = new THREE.Mesh(boosterGeometry, boosterMaterial);
+    booster1.position.set(20, -20, 0);
+    rocketGroup.add(booster1);
+
+    const booster2 = new THREE.Mesh(boosterGeometry, boosterMaterial);
+    booster2.position.set(-20, -20, 0);
+    rocketGroup.add(booster2);
+
+    // Rocket fins
+    const finGeometry = new THREE.BoxGeometry(40, 2, 15);
+    const finMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc });
+
+    // Add 4 fins
+    for (let i = 0; i < 4; i++) {
+        const fin = new THREE.Mesh(finGeometry, finMaterial);
+        fin.position.y = -55;
+        fin.rotation.y = (i / 2) * Math.PI;
+        rocketGroup.add(fin);
+    }
+
+    // Initial position of rocket
+    rocketGroup.position.set(0, earthRadius, 0);
+    rocketGroup.rotation.x = Math.PI / 2; // Point up
+    rocketGroup.visible = false; // Hide initially, show only in launch stage
+
+    // --- Create Voyager 1 Spacecraft ---
+    const voyagerGroup = new THREE.Group();
+    scene.add(voyagerGroup);
+
+    // Main spacecraft bus
+    const busGeometry = new THREE.BoxGeometry(20, 10, 20);
+    const busMaterial = new THREE.MeshPhongMaterial({
+        color: 0xF0F0F0, // White/silver color
+        emissive: 0x111111,
+        specular: 0x333333,
+        shininess: 80
+    });
+    const spacecraftBus = new THREE.Mesh(busGeometry, busMaterial);
+    voyagerGroup.add(spacecraftBus);
+
+    // Golden record (simplified as a cylinder)
+    const recordGeometry = new THREE.CylinderGeometry(7, 7, 1, 32);
+    const recordMaterial = new THREE.MeshPhongMaterial({
+        color: 0xFFD700, // Gold color
+        emissive: 0x302010,
+        specular: 0xFFFFCC,
+        shininess: 100
+    });
+    const goldenRecord = new THREE.Mesh(recordGeometry, recordMaterial);
+    goldenRecord.rotation.x = Math.PI / 2; // Make it face outward
+    goldenRecord.position.set(12, 0, 0); // Position on the side of the bus
+    voyagerGroup.add(goldenRecord);
+
+    // RTG (Radioisotope Thermoelectric Generator)
+    const rtgGeometry = new THREE.CylinderGeometry(3, 3, 15, 16);
+    const rtgMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+    const rtg = new THREE.Mesh(rtgGeometry, rtgMaterial);
+    rtg.rotation.z = Math.PI / 2; // Align horizontally
+    rtg.position.set(-15, 0, 0); // Opposite to the record
+    voyagerGroup.add(rtg);
+
+    // Large dish antenna
+    const dishGeometry = new THREE.CylinderGeometry(0, 15, 5, 32);
+    const dishMaterial = new THREE.MeshPhongMaterial({
+        color: 0xCCCCCC, // Silver/white color
+        specular: 0x555555,
+        shininess: 30
+    });
+    const dish = new THREE.Mesh(dishGeometry, dishMaterial);
+    dish.rotation.z = Math.PI / 2; // Point outward
+    dish.position.set(0, 15, 0); // On top of the bus
+    voyagerGroup.add(dish);
+
+    // Science boom
+    const boomGeometry = new THREE.CylinderGeometry(0.5, 0.5, 40, 8);
+    const boomMaterial = new THREE.MeshPhongMaterial({ color: 0xAAAAAA });
+    const scienceBoom = new THREE.Mesh(boomGeometry, boomMaterial);
+    scienceBoom.rotation.z = Math.PI / 2; // Align horizontally
+    scienceBoom.position.set(0, 0, 20); // Extend from the side
+    voyagerGroup.add(scienceBoom);
+
+    // Science instruments (simplified as small boxes)
+    const instrumentGeometry = new THREE.BoxGeometry(3, 3, 3);
+    const instrumentMaterial = new THREE.MeshPhongMaterial({ color: 0x444444 });
+
+    // Add instruments to the boom
+    for (let i = 0; i < 3; i++) {
+        const instrument = new THREE.Mesh(instrumentGeometry, instrumentMaterial);
+        instrument.position.set(0, 0, 20 + i * 10);
+        voyagerGroup.add(instrument);
+    }
+
+    // Solar panels (not actually used by Voyager in deep space, but visually recognizable)
+    const panelGeometry = new THREE.BoxGeometry(30, 0.5, 10);
+    const panelMaterial = new THREE.MeshPhongMaterial({
+        color: 0x2244BB, // Blue color
+        emissive: 0x112233,
+        specular: 0x111122,
+        shininess: 30
+    });
+    const panel1 = new THREE.Mesh(panelGeometry, panelMaterial);
+    panel1.position.set(0, 0, -15);
+    voyagerGroup.add(panel1);
+
+    // Initial position of spacecraft
+    voyagerGroup.position.set(0, earthRadius + 150, 0);
+    voyagerGroup.scale.set(0.8, 0.8, 0.8);
+    voyagerGroup.visible = false; // Hide initially
+
+    // --- Create Launch Effects ---
+    const rocketExhaustGeometry = new THREE.CylinderGeometry(10, 20, 100, 20);
+    const rocketExhaustMaterial = new THREE.MeshBasicMaterial({
+        color: 0xFF5500,
+        transparent: true,
+        opacity: 0.7
+    });
+    const rocketExhaust = new THREE.Mesh(rocketExhaustGeometry, rocketExhaustMaterial);
+    rocketExhaust.position.y = -100;
+    rocketGroup.add(rocketExhaust);
+
+    // --- Create Labels ---
+    function createLabel(text, className = '') {
+        const label = document.createElement('div');
+        label.className = 'label ' + className;
+        label.textContent = text;
+        document.body.appendChild(label);
+        return label;
+    }
+
+    // Create labels for key objects
+    const earthLabel = createLabel('Earth', 'planet-label');
+    const jupiterLabel = createLabel('Jupiter', 'planet-label');
+    const saturnLabel = createLabel('Saturn', 'planet-label');
+    const voyagerLabel = createLabel('Voyager 1', 'voyager-label');
+    const heliopauseLabel = createLabel('Heliopause', 'label');
+
+    // Helper function to update a single label's position
+    function updateLabelPosition(label, position3D, yOffset = 0) {
+        const tempPosition = position3D.clone();
+        if (yOffset) tempPosition.y += yOffset;
+
+        // Project the 3D position to screen coordinates
+        const vector = tempPosition.clone();
+        vector.project(camera);
+
+        // Convert to CSS coordinates
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+
+        // Set the label's position
+        label.style.left = x + 'px';
+        label.style.top = y + 'px';
+
+        // Hide if behind camera
+        if (vector.z > 1) {
+            label.style.display = 'none';
+        } else {
+            label.style.display = 'block';
+        }
+    }
+
+    // Function to update all label positions
+    function updateLabelPositions() {
+        updateLabelPosition(earthLabel, earth.position);
+        updateLabelPosition(jupiterLabel, jupiter.position);
+        updateLabelPosition(saturnLabel, saturn.position);
+
+        // Only show Voyager label after launch
+        if (currentStage > 0) {
+            updateLabelPosition(voyagerLabel, voyagerGroup.position, 30);
+            voyagerLabel.style.display = 'block';
+        } else {
+            voyagerLabel.style.display = 'none';
+        }
+
+        // Only show heliopause label in later stages
+        if (currentStage >= 3) {
+            const heliopausePos = new THREE.Vector3(5500, 0, 0); // Position near edge
+            updateLabelPosition(heliopauseLabel, heliopausePos);
+            heliopauseLabel.style.display = 'block';
+        } else {
+            heliopauseLabel.style.display = 'none';
+        }
+    }
+
+    // --- Mission Timeline and Stages ---
+    const missionStages = [
+        {
+            name: "Launch Preparation (1977)",
+            date: "September 5, 1977",
+            year: "1977",
+            description: "Preparing for launch at Cape Canaveral, Florida. Voyager 1 is mounted atop a Titan IIIE-Centaur rocket, ready to begin its historic journey to the outer planets and beyond.",
+            cameraPosition: [0, 300, 800],
+            voyagerPosition: [0, earthRadius + 150, 0],
+            earthPosition: [0, 0, 0],
+            jupiterPosition: [jupiterDistance, 0, 0],
+            saturnPosition: [saturnDistance, 0, 0],
+            showRocket: true,
+            showVoyager: false,
+            powerLevel: 100,
+            distance: 0
+        },
+        {
+            name: "Launch & Earth Departure (1977)",
+            date: "September 5, 1977",
+            year: "1977",
+            description: "The Titan IIIE-Centaur rocket launches successfully, placing Voyager 1 into a trajectory that will take it beyond Earth and towards Jupiter. The spacecraft's instruments are activated and begin collecting data.",
+            cameraPosition: [200, 400, 800],
+            voyagerPosition: [400, 200, 0],
+            earthPosition: [0, 0, 0],
+            jupiterPosition: [jupiterDistance, 0, 0],
+            saturnPosition: [saturnDistance, 0, 0],
+            showRocket: false,
+            showVoyager: true,
+            powerLevel: 100,
+            distance: 400
+        },
+        {
+            name: "Jupiter Flyby (1979)",
+            date: "March 5, 1979",
+            year: "1979",
+            description: "Voyager 1 performs a close flyby of Jupiter, returning spectacular images of the gas giant and its moons. The spacecraft uses Jupiter's gravity to boost its speed and adjust its trajectory toward Saturn.",
+            cameraPosition: [jupiterDistance - 100, 200, 400],
+            voyagerPosition: [jupiterDistance - 100, 50, 50],
+            earthPosition: [0, 0, 0],
+            jupiterPosition: [jupiterDistance, 0, 0],
+            saturnPosition: [saturnDistance, 0, 0],
+            showRocket: false,
+            showVoyager: true,
+            powerLevel: 97,
+            distance: jupiterDistance - 100
+        },
+        {
+            name: "Saturn Flyby (1980)",
+            date: "November 12, 1980",
+            year: "1980",
+            description: "The spacecraft encounters Saturn, studying its complex ring system and moons, particularly Titan. After this flyby, Voyager 1's trajectory takes it out of the plane of the ecliptic and toward interstellar space.",
+            cameraPosition: [saturnDistance - 100, 100, 200],
+            voyagerPosition: [saturnDistance - 50, 50, 50],
+            earthPosition: [0, 0, 0],
+            jupiterPosition: [jupiterDistance, 0, 0],
+            saturnPosition: [saturnDistance, 0, 0],
+            showRocket: false,
+            showVoyager: true,
+            powerLevel: 95,
+            distance: saturnDistance - 50
+        },
+        {
+            name: "Interstellar Mission Begins (1990)",
+            date: "February 14, 1990",
+            year: "1990",
+            description: "Voyager 1 takes the famous 'Pale Blue Dot' photo, showing Earth as a tiny point of light. The spacecraft continues outward, studying the outer solar system and the interaction between the solar wind and interstellar space.",
+            cameraPosition: [5000, 300, 500],
+            voyagerPosition: [5000, 100, 0],
+            earthPosition: [0, 0, 0],
+            jupiterPosition: [jupiterDistance, 0, 0],
+            saturnPosition: [saturnDistance, 0, 0],
+            showRocket: false,
+            showVoyager: true,
+            powerLevel: 80,
+            distance: 5000
+        },
+        {
+            name: "Crossing Heliopause (2012)",
+            date: "August 25, 2012",
+            year: "2012",
+            description: "Voyager 1 becomes the first human-made object to enter interstellar space, crossing the heliopause where the solar wind is no longer strong enough to push back against interstellar wind. It detects a dramatic change in its plasma environment, confirming its passage into interstellar space.",
+            cameraPosition: [6200, 200, 300],
+            voyagerPosition: [6100, 100, 0],
+            earthPosition: [0, 0, 0],
+            jupiterPosition: [jupiterDistance, 0, 0],
+            saturnPosition: [saturnDistance, 0, 0],
+            showRocket: false,
+            showVoyager: true,
+            powerLevel: 60,
+            distance: 6100
+        },
+        {
+            name: "Present Day & Beyond (2025)",
+            date: "April 2, 2025",
+            year: "2025",
+            description: "Nearly 50 years after launch, Voyager 1 continues operating, 23 billion kilometers from Earth. With diminishing power, NASA has turned off non-essential instruments to extend its life. Around 2030, the spacecraft will likely lose contact with Earth, but will continue its silent journey through interstellar space for eons.",
+            cameraPosition: [7000, 200, 300],
+            voyagerPosition: [7000, 100, 0],
+            earthPosition: [0, 0, 0],
+            jupiterPosition: [jupiterDistance, 0, 0],
+            saturnPosition: [saturnDistance, 0, 0],
+            showRocket: false,
+            showVoyager: true,
+            powerLevel: 35,
+            distance: 7000
+        }
+    ];
+
+    let currentStage = 0;
+    let isPlaying = false;
+    let animationProgress = 0;
+    let transitionTimer = null;
+
+    // DOM elements
+    const missionStageElement = document.getElementById('mission-stage');
+    const missionInfoElement = document.getElementById('mission-info');
+    const missionYearElement = document.getElementById('mission-year');
+    const prevStageButton = document.getElementById('prev-stage');
+    const nextStageButton = document.getElementById('next-stage');
+    const playPauseButton = document.getElementById('play-pause');
+    const timelineSlider = document.getElementById('timeline-slider');
+    const timelineDate = document.getElementById('timeline-date');
+    const distanceIndicator = document.getElementById('distance-indicator');
+    const powerLevel = document.getElementById('power-level');
+    const powerText = document.getElementById('power-text');
+    const goldenRecordElem = document.getElementById('golden-record');
+    const goldenRecordInfo = document.getElementById('golden-record-info');
+
+    // Function to update mission info based on current stage
+    function updateMissionInfo() {
+        const stage = missionStages[currentStage];
+        missionStageElement.textContent = `Current Stage: ${stage.name}`;
+        missionYearElement.textContent = `Current Year: ${stage.year}`;
+        missionInfoElement.textContent = stage.description;
+        timelineDate.textContent = `${stage.date} - ${stage.name}`;
+        timelineSlider.value = currentStage;
+
+        // Update distance indicator
+        const distanceInMillionsKm = (stage.distance / 100).toFixed(1); // Scaling factor
+        distanceIndicator.textContent = `Distance from Earth: ${distanceInMillionsKm} million km`;
+
+        // Update power level
+        powerLevel.style.width = `${stage.powerLevel}%`;
+        powerText.textContent = `RTG Power: ${stage.powerLevel}%`;
+
+        // Update button states
+        prevStageButton.disabled = currentStage === 0;
+        nextStageButton.disabled = currentStage === missionStages.length - 1;
+
+        // Show/hide rocket and voyager based on stage
+        rocketGroup.visible = stage.showRocket;
+        voyagerGroup.visible = stage.showVoyager;
+    }
+
+    // Function to handle stage transitions
+    function goToStage(stageIndex, animate = true) {
+        // Clear any existing animations
+        if (transitionTimer) clearTimeout(transitionTimer);
+
+        currentStage = stageIndex;
+        animationProgress = 0;
+
+        updateMissionInfo();
+
+        if (!animate) {
+            // Instant position change
+            const targetStage = missionStages[currentStage];
+            camera.position.set(...targetStage.cameraPosition);
+            voyagerGroup.position.set(...targetStage.voyagerPosition);
+            earth.position.set(...targetStage.earthPosition);
+            jupiter.position.set(...targetStage.jupiterPosition);
+            saturn.position.set(...targetStage.saturnPosition);
+            controls.target.copy(voyagerGroup.position);
+            controls.update();
+        }
+    }
+
+    // Event listener for the timeline slider
+    timelineSlider.addEventListener('input', function () {
+        goToStage(parseInt(this.value), false);
+    });
+
+    // Event listeners for control buttons
+    prevStageButton.addEventListener('click', function () {
+        if (currentStage > 0) {
+            goToStage(currentStage - 1);
+        }
+    });
+
+    nextStageButton.addEventListener('click', function () {
+        if (currentStage < missionStages.length - 1) {
+            goToStage(currentStage + 1);
+        }
+    });
+
+    playPauseButton.addEventListener('click', function () {
+        isPlaying = !isPlaying;
+        this.textContent = isPlaying ? 'Pause' : 'Play';
+
+        if (isPlaying && currentStage === missionStages.length - 1) {
+            // If at the end, restart from beginning
+            goToStage(0);
+        }
+    });
+
+    // Golden Record interaction
+    goldenRecordElem.addEventListener('click', function () {
+        goldenRecordInfo.style.display = goldenRecordInfo.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Hide golden record info on click outside
+    document.addEventListener('click', function (event) {
+        if (event.target !== goldenRecordElem && goldenRecordInfo.style.display === 'block') {
+            goldenRecordInfo.style.display = 'none';
+        }
+    });
+
+    // --- Launch Animation Effects ---
+    function createLaunchEffect() {
+        if (currentStage === 0 && rocketGroup.visible) {
+            // Create exhaust particles
+            const particleCount = 20;
+            const particles = [];
+
+            for (let i = 0; i < particleCount; i++) {
+                const geometry = new THREE.SphereGeometry(3 + Math.random() * 7, 8, 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color().setHSL(0.05 + Math.random() * 0.05, 1, 0.5 + Math.random() * 0.5),
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const particle = new THREE.Mesh(geometry, material);
+
+                // Position at bottom of rocket with random offset
+                const rocketPos = new THREE.Vector3();
+                rocketGroup.getWorldPosition(rocketPos);
+
+                particle.position.set(
+                    rocketPos.x + (Math.random() - 0.5) * 20,
+                    rocketPos.y - 100 - Math.random() * 50,
+                    rocketPos.z + (Math.random() - 0.5) * 20
+                );
+
+                // Set random velocity downward
+                particle.userData.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 5,
+                    -10 - Math.random() * 15,
+                    (Math.random() - 0.5) * 5
+                );
+
+                scene.add(particle);
+                particles.push(particle);
+
+                // Remove particle after some time
+                setTimeout(() => {
+                    scene.remove(particle);
+                    const index = particles.indexOf(particle);
+                    if (index > -1) {
+                        particles.splice(index, 1);
+                    }
+                }, 2000);
+            }
+        }
+    }
+
+    // --- Animation Loop ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+
+        // Update controls
+        controls.update();
+
+        // Handle automated playback
+        if (isPlaying) {
+            animationProgress += delta * 0.2; // Speed control
+
+            if (animationProgress >= 1) {
+                animationProgress = 0;
+
+                // Move to next stage if not at the end
+                if (currentStage < missionStages.length - 1) {
+                    goToStage(currentStage + 1);
+                } else {
+                    isPlaying = false;
+                    playPauseButton.textContent = 'Play';
+                }
+            }
+
+            // Interpolate between current and next stage for smooth transitions
+            if (currentStage < missionStages.length - 1) {
+                const current = missionStages[currentStage];
+                const next = missionStages[currentStage + 1];
+
+                // Interpolate spacecraft position
+                const currentPos = new THREE.Vector3(...current.voyagerPosition);
+                const nextPos = new THREE.Vector3(...next.voyagerPosition);
+                voyagerGroup.position.lerpVectors(currentPos, nextPos, animationProgress);
+
+                // Interpolate camera position
+                const currentCamPos = new THREE.Vector3(...current.cameraPosition);
+                const nextCamPos = new THREE.Vector3(...next.cameraPosition);
+                camera.position.lerpVectors(currentCamPos, nextCamPos, animationProgress);
+
+                controls.target.copy(voyagerGroup.position);
+
+                // Interpolate power level
+                const currentPower = current.powerLevel;
+                const nextPower = next.powerLevel;
+                const interpolatedPower = currentPower + (nextPower - currentPower) * animationProgress;
+                powerLevel.style.width = `${interpolatedPower}%`;
+                powerText.textContent = `RTG Power: ${Math.round(interpolatedPower)}%`;
+
+                // Interpolate distance
+                const currentDistance = current.distance;
+                const nextDistance = next.distance;
+                const interpolatedDistance = currentDistance + (nextDistance - currentDistance) * animationProgress;
+                const distanceInMillionsKm = (interpolatedDistance / 100).toFixed(1);
+                distanceIndicator.textContent = `Distance from Earth: ${distanceInMillionsKm} million km`;
+            }
+        }
+
+        // Special effects for launch stage
+        if (currentStage === 0 && rocketGroup.visible) {
+            // Move rocket up slowly during preparation
+            const launchHeight = earthRadius + 150;
+            if (rocketGroup.position.y < launchHeight) {
+                rocketGroup.position.y += delta * 10; // Slow ascent during preparation
+            }
+
+            // Launch smoke and fire effect
+            if (Math.random() > 0.7) {
+                createLaunchEffect();
+            }
+        }
+
+        // Special effects for actual launch stage
+        if (currentStage === 1 && animationProgress < 0.3) {
+            // Rocket has launched and is ascending rapidly
+            const rocketPos = new THREE.Vector3(
+                animationProgress * 400,
+                earthRadius + 150 + animationProgress * 400,
+                0
+            );
+
+            if (!rocketGroup.visible && voyagerGroup.visible) {
+                // Show rocket briefly during launch
+                rocketGroup.visible = true;
+                rocketGroup.position.copy(rocketPos);
+
+                // Hide rocket after it gets far enough
+                setTimeout(() => {
+                    rocketGroup.visible = false;
+                }, 3000);
+            }
+
+            // Create more intense launch effects
+            if (Math.random() > 0.5) {
+                createLaunchEffect();
+            }
+        }
+
+        // Rotation effects
+        earth.rotation.y += delta * 0.2; // Earth rotates on its axis
+        jupiter.rotation.y += delta * 0.1; // Jupiter rotates faster than Earth
+        saturn.rotation.y += delta * 0.15; // Saturn rotation
+
+        // Spacecraft rotation - subtle movement for realism
+        if (voyagerGroup.visible) {
+            voyagerGroup.rotation.y += delta * 0.03; // Very slow rotation
+
+            // Add slight wobble
+            voyagerGroup.rotation.x = Math.sin(clock.elapsedTime * 0.2) * 0.01;
+            voyagerGroup.rotation.z = Math.cos(clock.elapsedTime * 0.3) * 0.01;
+        }
+
+        // Update label positions
+        updateLabelPositions();
+
+        // Render the scene
+        renderer.render(scene, camera);
+    }
+
+    // --- Handle Window Resize ---
+    window.addEventListener('resize', function () {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initialize the scene
+    updateMissionInfo();
+
+    // Start animation loop
+    animate();
+</script>
+{% endblock %}

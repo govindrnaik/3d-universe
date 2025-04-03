@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Big Bang Visualization{% endblock %}
+
+{% block additional_styles %}
+/* Label styles for Big Bang visualization */
+.label {
+color: white;
+font-family: Arial, sans-serif;
+font-size: 12px;
+background-color: rgba(0, 0, 0, 0.5);
+padding: 2px 5px;
+border-radius: 3px;
+pointer-events: none;
+position: absolute;
+text-align: center;
+transform: translate(-50%, -50%);
+user-select: none;
+text-shadow: 0px 0px 2px #000000;
+border: 1px solid rgba(255, 255, 255, 0.2);
+z-index: 10;
+}
+
+.phase-label {
+color: #00ffcc;
+font-weight: bold;
+font-size: 14px;
+}
+
+.expansion-label {
+color: #ff9900;
+font-weight: bold;
+}
+
+/* Toggle for labels */
+#label-toggle {
+position: absolute;
+top: 10px;
+right: 10px;
+color: white;
+background-color: rgba(0, 0, 0, 0.5);
+padding: 5px 10px;
+border-radius: 5px;
+font-family: sans-serif;
+font-size: 0.9em;
+cursor: pointer;
+z-index: 10;
+border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Timeline indicator */
+#timeline-indicator {
+position: absolute;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+color: white;
+background-color: rgba(0, 0, 0, 0.5);
+padding: 5px 10px;
+border-radius: 5px;
+font-family: sans-serif;
+font-size: 1em;
+z-index: 10;
+text-align: center;
+min-width: 300px;
+border: 1px solid rgba(255, 255, 255, 0.3);
+}
+{% endblock %}
+
+{% block content %}
+<div id="label-toggle">Toggle Labels</div>
+<div id="timeline-indicator">Big Bang: Initial Expansion</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Scene Setup ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Camera Controls ---
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    camera.position.set(0, 0, 100);
+    controls.update();
+
+    // --- Big Bang Visualization ---
+    // Original content from big_bang.html would go here
+
+    // Simple placeholder implementation
+    const particles = [];
+    const particleCount = 5000;
+
+    // Create particle system
+    const particleGeometry = new THREE.BufferGeometry();
+    const particleMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 2,
+        transparent: true,
+        opacity: 0.8
+    });
+
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleVelocities = [];
+
+    // Initialize particles at center
+    for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3;
+        // Start all particles at center with small random offset
+        particlePositions[i3] = (Math.random() - 0.5) * 10;
+        particlePositions[i3 + 1] = (Math.random() - 0.5) * 10;
+        particlePositions[i3 + 2] = (Math.random() - 0.5) * 10;
+
+        // Random velocity vector
+        particleVelocities.push({
+            x: (Math.random() - 0.5) * 2,
+            y: (Math.random() - 0.5) * 2,
+            z: (Math.random() - 0.5) * 2
+        });
+    }
+
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+    scene.add(particleSystem);
+
+    // --- Label System ---
+    let labelsVisible = true;
+    const labels = [];
+    const timelineElement = document.getElementById('timeline-indicator');
+
+    // Create labels for key phases of the Big Bang
+    function createLabel(text, className = '') {
+        const label = document.createElement('div');
+        label.className = 'label ' + className;
+        label.textContent = text;
+        document.body.appendChild(label);
+        return label;
+    }
+
+    // Function to update label positions
+    function updateLabelPosition(label, position) {
+        const vector = position.clone();
+        vector.project(camera);
+
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+
+        label.style.left = x + 'px';
+        label.style.top = y + 'px';
+
+        if (vector.z > 1) {
+            label.style.display = 'none';
+        } else {
+            label.style.display = labelsVisible ? 'block' : 'none';
+        }
+    }
+
+    // Create key phase labels
+    const singularityLabel = createLabel('Singularity', 'phase-label');
+    const inflationLabel = createLabel('Cosmic Inflation', 'phase-label');
+    const radiationLabel = createLabel('Radiation Era', 'expansion-label');
+    const matterLabel = createLabel('Matter Era', 'expansion-label');
+    const galaxyLabel = createLabel('Galaxy Formation', 'expansion-label');
+
+    labels.push(singularityLabel, inflationLabel, radiationLabel, matterLabel, galaxyLabel);
+
+    // Labels toggle functionality
+    document.getElementById('label-toggle').addEventListener('click', function () {
+        labelsVisible = !labelsVisible;
+        labels.forEach(label => {
+            label.style.display = labelsVisible ? 'block' : 'none';
+        });
+        this.textContent = labelsVisible ? 'Hide Labels' : 'Show Labels';
+    });
+
+    // --- Animation Loop ---
+    const clock = new THREE.Clock();
+    let expansionRate = 1.0; // Speed of expansion
+    let elapsedTotal = 0;  // Track total elapsed time
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+        elapsedTotal += delta;
+
+        // Update particle positions (expanding outward)
+        const positions = particleGeometry.attributes.position.array;
+
+        // Calculate max distance for timeline progression
+        let maxDistance = 0;
+
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            const vel = particleVelocities[i];
+
+            // Update positions based on velocity
+            positions[i3] += vel.x * expansionRate * delta * 10;
+            positions[i3 + 1] += vel.y * expansionRate * delta * 10;
+            positions[i3 + 2] += vel.z * expansionRate * delta * 10;
+
+            // Color particles based on distance from center
+            const distance = Math.sqrt(
+                positions[i3] * positions[i3] +
+                positions[i3 + 1] * positions[i3 + 1] +
+                positions[i3 + 2] * positions[i3 + 2]
+            );
+
+            if (distance > maxDistance) {
+                maxDistance = distance;
+            }
+
+            // Optional: change particle color based on distance
+            if (distance > 100) {
+                // Slow down expansion for distant particles
+                expansionRate = Math.max(0.5, expansionRate - 0.001);
+            }
+        }
+
+        // Update timeline indicator based on max distance
+        if (maxDistance < 20) {
+            timelineElement.textContent = "Big Bang: Initial Singularity (10^-43 seconds)";
+        } else if (maxDistance < 50) {
+            timelineElement.textContent = "Big Bang: Cosmic Inflation Period (10^-36 to 10^-32 seconds)";
+        } else if (maxDistance < 100) {
+            timelineElement.textContent = "Big Bang: Radiation Dominated Era (10^-32 seconds to 70,000 years)";
+        } else if (maxDistance < 200) {
+            timelineElement.textContent = "Big Bang: Matter Dominated Era (70,000 years to 380,000 years)";
+        } else {
+            timelineElement.textContent = "Big Bang: Structure Formation (380,000+ years)";
+        }
+
+        particleGeometry.attributes.position.needsUpdate = true;
+
+        // Update label positions
+        updateLabelPosition(singularityLabel, new THREE.Vector3(0, 0, 0));
+        updateLabelPosition(inflationLabel, new THREE.Vector3(30, 10, 10));
+        updateLabelPosition(radiationLabel, new THREE.Vector3(70, -20, 30));
+        updateLabelPosition(matterLabel, new THREE.Vector3(-50, 40, -20));
+        updateLabelPosition(galaxyLabel, new THREE.Vector3(120, 0, -60));
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // --- Handle Window Resize ---
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }, false);
+
+    // --- Start Animation ---
+    animate();
+</script>
+{% endblock %}

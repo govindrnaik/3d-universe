@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Space Visualizations{% endblock %}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000000;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            font-size: 0.9em;
+            z-index: 10;
+        }
+
+        /* Navigation buttons styles */
+        #nav-buttons {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-button {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .nav-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .current {
+            background-color: rgba(70, 130, 180, 0.7);
+            pointer-events: none;
+        }
+
+            {
+            % block additional_styles %
+        }
+
+            {
+            % endblock %
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info">Drag to rotate, Scroll to zoom</div>
+
+    {% block content %}{% endblock %}
+
+    <!-- Navigation Buttons -->
+    <div id="nav-buttons">
+        <a href="/solar-system" class="nav-button {% if active_page == 'solar-system' %}current{% endif %}">Solar
+            System</a>
+        <a href="/big-bang" class="nav-button {% if active_page == 'big-bang' %}current{% endif %}">Big Bang</a>
+        <a href="/black-hole" class="nav-button {% if active_page == 'black-hole' %}current{% endif %}">Black Hole</a>
+        <a href="/voyager-mission"
+            class="nav-button {% if active_page == 'voyager-mission' %}current{% endif %}">Voyager 1</a>
+        <a href="/starlink-network"
+            class="nav-button {% if active_page == 'starlink-network' %}current{% endif %}">Starlink Network</a>
+        <a href="/chandrayaan-mission"
+            class="nav-button {% if active_page == 'chandrayaan-mission' %}current{% endif %}">Chandrayaan-3</a>
+        <a href="/mangalyaan-mission"
+            class="nav-button {% if active_page == 'mangalyaan-mission' %}current{% endif %}">Mangalyaan 3</a>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

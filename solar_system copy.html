@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar System Animation with Moons & Tilt</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            /* Prevent scrollbars */
+            background-color: #000000;
+            /* Black space background */
+        }
+
+        canvas {
+            display: block;
+            /* Remove default inline spacing */
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            font-size: 0.9em;
+            z-index: 10;
+            /* Ensure info is above canvas */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info">Drag to rotate, Scroll to zoom</div>
+    <script>
+        // --- Scene Setup ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000); // Increased far plane
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0x444444); // Slightly brighter ambient
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 1.8, 2000); // Slightly brighter point light
+        scene.add(pointLight);
+
+        // --- Camera Controls ---
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        // Increased distance to see outer planets better initially
+        camera.position.set(0, 150, 350);
+        controls.update();
+
+        // --- Celestial Body Data ---
+        // Added tilt (in radians) and moons array
+        // Moon data: name, size, color, orbital radius around planet, orbital speed factor relative to planet's year
+        const solarSystemData = [
+            { name: 'Sun', size: 15, color: 0xffff00, radius: 0, speed: 0, tilt: 0, emissive: 0xffff00, moons: [] },
+            { name: 'Mercury', size: 1, color: 0xaaaaaa, radius: 40, speed: 1.6, tilt: 0.0003, moons: [] }, // Adjusted radius slightly
+            { name: 'Venus', size: 2.5, color: 0xffe4b5, radius: 65, speed: 1.1, tilt: 3.09, moons: [] }, // Adjusted radius slightly
+            {
+                name: 'Earth', size: 2.7, color: 0x4682b4, radius: 90, speed: 1.0, tilt: 0.41, // Approx 23.5 degrees
+                moons: [
+                    { name: 'Moon', size: 0.7, color: 0xcccccc, radius: 6, speed: 12 } // Moon orbits faster relative to Earth's year
+                ]
+            },
+            {
+                name: 'Mars', size: 1.5, color: 0xff4500, radius: 125, speed: 0.8, tilt: 0.44, // Approx 25 degrees
+                moons: [
+                    { name: 'Phobos', size: 0.2, color: 0xaaaaaa, radius: 3, speed: 30 },
+                    { name: 'Deimos', size: 0.15, color: 0xbbbbbb, radius: 4.5, speed: 20 }
+                ]
+            },
+            {
+                name: 'Jupiter', size: 8, color: 0xffa500, radius: 190, speed: 0.4, tilt: 0.05, // Approx 3 degrees
+                moons: [ // Galilean moons
+                    { name: 'Io', size: 0.8, color: 0xffff99, radius: 12, speed: 25 },
+                    { name: 'Europa', size: 0.7, color: 0xccccff, radius: 15, speed: 20 },
+                    { name: 'Ganymede', size: 1.2, color: 0xbbbbbb, radius: 19, speed: 15 },
+                    { name: 'Callisto', size: 1.1, color: 0xaaaaaa, radius: 24, speed: 10 }
+                ]
+            },
+            {
+                name: 'Saturn', size: 7, color: 0xf4a460, radius: 260, speed: 0.3, tilt: 0.47, hasRings: true, // Approx 27 degrees
+                moons: [
+                    { name: 'Titan', size: 1.2, color: 0xffcc66, radius: 18, speed: 8 }
+                    // Add more Saturn moons if desired (e.g., Rhea, Iapetus)
+                ]
+            },
+            { name: 'Uranus', size: 5, color: 0xadd8e6, radius: 320, speed: 0.2, tilt: 1.7, moons: [] }, // Approx 98 degrees!
+            { name: 'Neptune', size: 4.8, color: 0x4169e1, radius: 380, speed: 0.15, tilt: 0.5, moons: [] } // Approx 28 degrees
+        ];
+
+        const celestialBodies = []; // Array to hold planet/sun meshes and data
+        const allMoons = []; // Separate array to hold moon meshes and data for animation
+
+        // --- Create Celestial Bodies and Orbits ---
+        solarSystemData.forEach(planetData => {
+            // Create a group for the planet and its moons/rings for easier rotation/tilt
+            const planetGroup = new THREE.Group();
+            planetGroup.position.x = planetData.radius; // Initial position along the x-axis
+            scene.add(planetGroup);
+
+            // Create the main body (Sphere)
+            const geometry = new THREE.SphereGeometry(planetData.size, 32, 32);
+            let material;
+            if (planetData.emissive) {
+                material = new THREE.MeshBasicMaterial({ color: planetData.color });
+                // Add a glow effect to the sun using a sprite
+                const spriteMaterial = new THREE.SpriteMaterial({
+                    map: createGlowTexture(),
+                    color: 0xffff00,
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    opacity: 0.6
+                });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.scale.set(planetData.size * 4, planetData.size * 4, 1.0); // Make glow larger than the sun
+                planetGroup.add(sprite); // Add glow to the sun's group
+            } else {
+                material = new THREE.MeshStandardMaterial({ color: planetData.color, roughness: 0.8, metalness: 0.1 });
+            }
+            const planetMesh = new THREE.Mesh(geometry, material);
+            planetGroup.add(planetMesh); // Add planet mesh to the group
+
+            // --- Apply Axial Tilt ---
+            // Tilt the entire group. The planet's rotation (spin) will happen within this tilted group.
+            // We tilt around the Z-axis assuming the orbit is in the XZ plane.
+            // If orbits were inclined, this would need adjustment.
+            planetGroup.rotation.z = planetData.tilt;
+
+
+            // Store group, mesh and data for animation
+            const body = { group: planetGroup, mesh: planetMesh, data: planetData, angle: Math.random() * Math.PI * 2 }; // Random start angle
+            celestialBodies.push(body);
+
+            // Create Moons for this planet
+            if (planetData.moons && planetData.moons.length > 0) {
+                planetData.moons.forEach(moonData => {
+                    const moonGeometry = new THREE.SphereGeometry(moonData.size, 16, 16); // Simpler geometry for moons
+                    const moonMaterial = new THREE.MeshStandardMaterial({ color: moonData.color, roughness: 0.9 });
+                    const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
+                    // Initial position relative to the planet (parent group)
+                    moonMesh.position.x = moonData.radius;
+                    planetGroup.add(moonMesh); // Add moon to the planet's group
+
+                    // Store moon mesh and data for animation
+                    allMoons.push({
+                        mesh: moonMesh,
+                        data: moonData,
+                        parentBody: body, // Link to the planet it orbits
+                        angle: Math.random() * Math.PI * 2 // Random start angle for moon orbit
+                    });
+                });
+            }
+
+            // Create Saturn's Rings
+            if (planetData.hasRings) {
+                const ringInnerRadius = planetData.size * 1.2;
+                const ringOuterRadius = planetData.size * 2.0; // Slightly wider rings
+                const ringSegments = 64;
+
+                const ringGeometry = new THREE.RingGeometry(ringInnerRadius, ringOuterRadius, ringSegments);
+
+                // Rotate the ring geometry so it's flat relative to the planet's equatorial plane
+                // Since the planet group is tilted, the ring will tilt with it.
+                ringGeometry.rotateX(Math.PI / 2);
+
+                // Improved ring material (still basic, no texture)
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xaaaadd, // Base color
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.5, // Slightly more transparent
+                    // blending: THREE.AdditiveBlending // Optional: for a brighter look
+                });
+
+                const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+                // ringMesh.rotation.x = Math.PI / 2; // Rotate rings to be flat initially
+                planetGroup.add(ringMesh); // Add rings to the planet's group
+                body.ringMesh = ringMesh;
+            }
+
+            // Create Orbit Path (visual line) for planets
+            if (planetData.radius > 0) {
+                const orbitCurve = new THREE.EllipseCurve(0, 0, planetData.radius, planetData.radius, 0, 2 * Math.PI, false, 0);
+                const points = orbitCurve.getPoints(128); // More points for smoother curve
+                const orbitGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const orbitMaterial = new THREE.LineBasicMaterial({ color: 0x333333 }); // Darker gray lines
+                const orbitLine = new THREE.Line(orbitGeometry, orbitMaterial);
+                orbitLine.rotation.x = Math.PI / 2; // Rotate orbit to be flat on the XZ plane
+                scene.add(orbitLine);
+            }
+        });
+
+        // Function to create a simple radial gradient texture for sun glow
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            const gradient = context.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, canvas.width / 2
+            );
+            gradient.addColorStop(0.1, 'rgba(255, 255, 200, 1)'); // Center bright
+            gradient.addColorStop(0.4, 'rgba(255, 200, 0, 0.5)'); // Middle yellow/orange
+            gradient.addColorStop(1, 'rgba(255, 150, 0, 0)'); // Outer transparent
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+
+        // --- Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const overallSpeedMultiplier = 0.1; // General speed control
+
+            // Animate Planets/Sun
+            celestialBodies.forEach(body => {
+                // 1. Orbiting the Sun (update group position)
+                if (body.data.radius > 0) {
+                    body.angle += body.data.speed * overallSpeedMultiplier * delta;
+                    if (body.angle > Math.PI * 2) body.angle -= Math.PI * 2;
+
+                    body.group.position.x = body.data.radius * Math.cos(body.angle);
+                    body.group.position.z = body.data.radius * Math.sin(body.angle);
+                }
+
+                // 2. Rotation (Spinning on axis - rotate the MESH inside the tilted group)
+                body.mesh.rotation.y += delta * 0.5; // Adjust spin speed as needed
+
+                // Note: Rings are part of the group, so they orbit and tilt correctly.
+                // If rings needed independent rotation (they don't), it would be handled here.
+            });
+
+            // Animate Moons
+            allMoons.forEach(moon => {
+                // Orbit around the parent planet's origin (which is the center of the planetGroup)
+                moon.angle += moon.data.speed * overallSpeedMultiplier * delta * 2; // Moons orbit faster
+                if (moon.angle > Math.PI * 2) moon.angle -= Math.PI * 2;
+
+                // Calculate position relative to the parent planet (within the planetGroup)
+                moon.mesh.position.x = moon.data.radius * Math.cos(moon.angle);
+                moon.mesh.position.z = moon.data.radius * Math.sin(moon.angle);
+                // Keep moon rotation simple for now
+                moon.mesh.rotation.y += delta * 0.8;
+            });
+
+
+            controls.update(); // Update camera controls
+            renderer.render(scene, camera); // Render the scene
+        }
+
+        // --- Handle Window Resize ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, false);
+
+        // --- Start Animation ---
+        animate();
+    </script>
+</body>
+
+</html>

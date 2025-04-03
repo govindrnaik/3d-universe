@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Starlink Satellite Network Visualization{% endblock %}
+
+{% block additional_styles %}
+/* Controls panel */
+#controls-panel {
+position: absolute;
+top: 10px;
+right: 10px;
+background-color: rgba(0, 0, 0, 0.5);
+padding: 10px;
+border-radius: 5px;
+color: white;
+font-family: sans-serif;
+z-index: 10;
+}
+
+.control-group {
+margin-bottom: 10px;
+}
+
+.control-group label {
+display: block;
+margin-bottom: 5px;
+}
+
+.slider {
+width: 100%;
+margin-bottom: 5px;
+}
+
+button {
+background-color: rgba(70, 130, 180, 0.7);
+color: white;
+border: none;
+padding: 5px 10px;
+border-radius: 3px;
+cursor: pointer;
+margin-top: 5px;
+}
+
+button:hover {
+background-color: rgba(70, 130, 180, 0.9);
+}
+{% endblock %}
+
+{% block content %}
+<!-- Controls panel -->
+<div id="controls-panel">
+    <div class="control-group">
+        <label for="satellite-count">Satellite Count: <span id="count-value">60</span></label>
+        <input type="range" id="satellite-count" class="slider" min="10" max="300" value="60">
+    </div>
+
+    <div class="control-group">
+        <label for="connection-distance">Connection Distance: <span id="distance-value">20</span></label>
+        <input type="range" id="connection-distance" class="slider" min="5" max="50" value="20">
+    </div>
+
+    <div class="control-group">
+        <label for="orbit-speed">Orbit Speed: <span id="speed-value">1.0</span></label>
+        <input type="range" id="orbit-speed" class="slider" min="0.1" max="3" value="1.0" step="0.1">
+    </div>
+
+    <button id="toggle-connections">Toggle Connections</button>
+    <button id="toggle-earth">Toggle Earth</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Scene Setup ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // --- Background Stars ---
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.5,
+        transparent: true
+    });
+
+    const starsVertices = [];
+    for (let i = 0; i < 10000; i++) {
+        const x = (Math.random() - 0.5) * 2000;
+        const y = (Math.random() - 0.5) * 2000;
+        const z = (Math.random() - 0.5) * 2000;
+        starsVertices.push(x, y, z);
+    }
+
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+    const starField = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(starField);
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+    sunLight.position.set(5, 3, 5);
+    scene.add(sunLight);
+
+    // --- Camera Controls ---
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    camera.position.set(0, 100, 300);
+    controls.update();
+
+    // --- Create Earth ---
+    let earthVisible = true;
+    const earthRadius = 50;
+    const earthGeometry = new THREE.SphereGeometry(earthRadius, 64, 64);
+    const earthMaterial = new THREE.MeshPhongMaterial({
+        color: 0x2233ff,
+        emissive: 0x112244,
+        specular: 0x222222,
+        shininess: 25
+    });
+    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    scene.add(earth);
+
+    // --- Create Satellites and Network ---
+    let satellites = [];
+    let connections = [];
+    let showConnections = true;
+    let satelliteCount = 60;
+    let connectionDistance = 20;
+    let orbitSpeed = 1.0;
+
+    function createSatelliteNetwork() {
+        // Remove existing satellites and connections
+        satellites.forEach(sat => scene.remove(sat));
+        connections.forEach(line => scene.remove(line));
+        satellites = [];
+        connections = [];
+
+        // Create new satellites
+        const satelliteGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+        const satelliteMaterial = new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            emissive: 0x444444,
+            specular: 0xffffff,
+            shininess: 100
+        });
+
+        // Create satellites in multiple orbital shells
+        const orbitalShells = [
+            { radius: earthRadius + 30, count: Math.floor(satelliteCount * 0.5) },
+            { radius: earthRadius + 50, count: Math.floor(satelliteCount * 0.3) },
+            { radius: earthRadius + 70, count: Math.floor(satelliteCount * 0.2) }
+        ];
+
+        orbitalShells.forEach(shell => {
+            for (let i = 0; i < shell.count; i++) {
+                const satellite = new THREE.Mesh(satelliteGeometry, satelliteMaterial);
+
+                // Calculate initial position - distribute evenly in orbit
+                const angle = (i / shell.count) * Math.PI * 2;
+                const inclination = Math.random() * Math.PI / 6 - Math.PI / 12; // Random orbital inclination
+
+                // Set position in spherical coordinates
+                satellite.position.x = shell.radius * Math.cos(angle) * Math.cos(inclination);
+                satellite.position.y = shell.radius * Math.sin(inclination);
+                satellite.position.z = shell.radius * Math.sin(angle) * Math.cos(inclination);
+
+                // Add data for animation
+                satellite.userData = {
+                    orbitalRadius: shell.radius,
+                    orbitalAngle: angle,
+                    orbitalInclination: inclination,
+                    orbitalSpeed: 0.1 + Math.random() * 0.1 // Slight variation in speed
+                };
+
+                scene.add(satellite);
+                satellites.push(satellite);
+            }
+        });
+
+        // Create network connections if enabled
+        if (showConnections) {
+            createConnections();
+        }
+    }
+
+    function createConnections() {
+        // Remove existing connections
+        connections.forEach(line => scene.remove(line));
+        connections = [];
+
+        // Create new connections between satellites that are close to each other
+        const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0x44bbff,
+            transparent: true,
+            opacity: 0.3
+        });
+
+        for (let i = 0; i < satellites.length; i++) {
+            const sat1 = satellites[i];
+
+            for (let j = i + 1; j < satellites.length; j++) {
+                const sat2 = satellites[j];
+
+                // Calculate distance between satellites
+                const distance = sat1.position.distanceTo(sat2.position);
+
+                // Create connection if satellites are close enough
+                if (distance < connectionDistance) {
+                    const geometry = new THREE.BufferGeometry().setFromPoints([
+                        sat1.position,
+                        sat2.position
+                    ]);
+
+                    const line = new THREE.Line(geometry, lineMaterial);
+                    scene.add(line);
+                    connections.push(line);
+
+                    // Store reference to satellites for updating connections
+                    line.userData = {
+                        sat1: sat1,
+                        sat2: sat2
+                    };
+                }
+            }
+        }
+    }
+
+    // --- Initialize Satellite Network ---
+    createSatelliteNetwork();
+
+    // --- Animation Loop ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = clock.getDelta();
+
+        // Rotate Earth
+        earth.rotation.y += delta * 0.1;
+
+        // Update satellite positions
+        satellites.forEach(satellite => {
+            const data = satellite.userData;
+
+            // Update orbital angle
+            data.orbitalAngle += delta * data.orbitalSpeed * orbitSpeed;
+            if (data.orbitalAngle > Math.PI * 2) {
+                data.orbitalAngle -= Math.PI * 2;
+            }
+
+            // Update position based on orbital parameters
+            satellite.position.x = data.orbitalRadius * Math.cos(data.orbitalAngle) * Math.cos(data.orbitalInclination);
+            satellite.position.y = data.orbitalRadius * Math.sin(data.orbitalInclination);
+            satellite.position.z = data.orbitalRadius * Math.sin(data.orbitalAngle) * Math.cos(data.orbitalInclination);
+        });
+
+        // Update connections if visible
+        if (showConnections) {
+            // Remove old connections
+            connections.forEach(line => scene.remove(line));
+            connections = [];
+
+            // Create new connections
+            createConnections();
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // --- Handle Window Resize ---
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }, false);
+
+    // --- Control Panel Functionality ---
+    document.getElementById('satellite-count').addEventListener('input', function () {
+        satelliteCount = parseInt(this.value);
+        document.getElementById('count-value').textContent = satelliteCount;
+        createSatelliteNetwork();
+    });
+
+    document.getElementById('connection-distance').addEventListener('input', function () {
+        connectionDistance = parseInt(this.value);
+        document.getElementById('distance-value').textContent = connectionDistance;
+        if (showConnections) {
+            createConnections();
+        }
+    });
+
+    document.getElementById('orbit-speed').addEventListener('input', function () {
+        orbitSpeed = parseFloat(this.value);
+        document.getElementById('speed-value').textContent = orbitSpeed.toFixed(1);
+    });
+
+    document.getElementById('toggle-connections').addEventListener('click', function () {
+        showConnections = !showConnections;
+        this.textContent = showConnections ? 'Hide Connections' : 'Show Connections';
+
+        if (showConnections) {
+            createConnections();
+        } else {
+            connections.forEach(line => scene.remove(line));
+            connections = [];
+        }
+    });
+
+    document.getElementById('toggle-earth').addEventListener('click', function () {
+        earthVisible = !earthVisible;
+        earth.visible = earthVisible;
+        this.textContent = earthVisible ? 'Hide Earth' : 'Show Earth';
+    });
+
+    // --- Start Animation ---
+    animate();
+</script>
+{% endblock %}

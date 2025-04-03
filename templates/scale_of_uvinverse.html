@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Cosmic Scale Explorer{% endblock %}
+
+{% block additional_styles %}
+@font-face {
+font-family: 'LucideIcons';
+src: url(https://cdn.jsdelivr.net/npm/lucide-static@latest/font/Lucide.ttf) format('truetype');
+}
+
+.lucide {
+font-family: 'LucideIcons';
+font-size: 1.5rem;
+line-height: 1;
+}
+
+#scale-object {
+transition: transform 0.5s ease-in-out, width 0.5s ease-in-out, height 0.5s ease-in-out, background-color 0.5s
+ease-in-out;
+border-radius: 50%;
+display: flex;
+justify-content: center;
+align-items: center;
+font-weight: bold;
+color: white;
+text-shadow: 1px 1px 2px black;
+}
+
+body {
+background: linear-gradient(to bottom, #0f172a, #1e293b);
+}
+
+/* Specific content styles */
+.content-container {
+width: 100%;
+max-width: 3xl;
+background-color: rgba(30, 41, 59, 0.8);
+border-radius: 0.5rem;
+box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+padding: 1.5rem;
+text-align: center;
+margin: 1rem auto;
+}
+
+.scale-title {
+font-size: 1.875rem;
+font-weight: 700;
+margin-bottom: 1rem;
+color: rgb(56, 189, 248);
+text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7);
+}
+
+.scale-description {
+margin-bottom: 1.5rem;
+color: rgb(226, 232, 240);
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.7);
+}
+
+.visualization-area {
+position: relative;
+width: 100%;
+height: 20rem;
+background-color: #000000;
+border-radius: 0.375rem;
+margin-bottom: 1.5rem;
+display: flex;
+align-items: center;
+justify-content: center;
+overflow: hidden;
+border: 1px solid rgb(51, 65, 85);
+}
+
+.info-area {
+margin-bottom: 1.5rem;
+height: 6rem;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+background-color: rgba(15, 23, 42, 0.7);
+border-radius: 0.375rem;
+padding: 1rem;
+border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.scale-name {
+font-size: 1.5rem;
+font-weight: 600;
+margin-bottom: 0.5rem;
+color: white;
+text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.8);
+}
+
+.scale-size {
+font-size: 1.125rem;
+color: rgb(186, 230, 253);
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+.scale-info {
+font-size: 0.875rem;
+color: rgb(226, 232, 240);
+margin-top: 0.25rem;
+text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+}
+
+.control-buttons {
+display: flex;
+justify-content: center;
+gap: 1rem;
+}
+
+.zoom-button {
+background-color: rgb(220, 38, 38);
+color: white;
+font-weight: 700;
+padding: 0.5rem 1rem;
+border-radius: 0.5rem;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+transition: all 0.2s ease-in-out;
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+
+.zoom-button:hover {
+background-color: rgb(185, 28, 28);
+}
+
+.zoom-button:disabled {
+opacity: 0.5;
+cursor: not-allowed;
+}
+
+.zoom-in {
+background-color: rgb(22, 163, 74);
+}
+
+.zoom-in:hover {
+background-color: rgb(21, 128, 61);
+}
+{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <h1 class="scale-title">Cosmic Scale Explorer</h1>
+
+    <p class="scale-description">Zoom in and out to explore the incredible scale of the universe.</p>
+
+    <div id="visualization-area" class="visualization-area">
+        <div id="scale-object" class="absolute bg-blue-500" style="width: 50px; height: 50px;">
+        </div>
+    </div>
+
+    <div class="info-area">
+        <h2 id="scale-name" class="scale-name">Object Name</h2>
+        <p id="scale-size" class="scale-size">Approximate Size: 1 meter</p>
+        <p id="scale-description" class="scale-info">Description</p>
+    </div>
+
+    <div class="control-buttons">
+        <button id="zoom-out-btn" class="zoom-button">
+            <i class="lucide scale-110">zoom-out</i> <span>Zoom Out</span>
+        </button>
+        <button id="zoom-in-btn" class="zoom-button zoom-in">
+            <i class="lucide scale-110">zoom-in</i> <span>Zoom In</span>
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', 'sans-serif'],
+                },
+            },
+        },
+    }
+</script>
+<script>
+    // --- Data for Different Scales ---
+    const scales = [
+        { name: "Single Cell (Amoeba)", size: "10⁻⁴ m", description: "Microscopic life form", color: "#fde047", visualSize: 10 }, // yellow-300
+        { name: "Ant", size: "10⁻³ m", description: "A small insect", color: "#f87171", visualSize: 15 }, // red-400
+        { name: "Human Hand", size: "10⁻¹ m", description: "Part of the human body", color: "#fb923c", visualSize: 25 }, // orange-400
+        { name: "Human", size: "10⁰ m (~1.7m)", description: "Approximate human height", color: "#60a5fa", visualSize: 50 }, // blue-400
+        { name: "Blue Whale", size: "10¹ m (~30m)", description: "Largest animal on Earth", color: "#38bdf8", visualSize: 70 }, // sky-400
+        { name: "Mount Everest", size: "10⁴ m (~8.8km)", description: "Earth's highest mountain", color: "#a3a3a3", visualSize: 90 }, // neutral-400
+        { name: "Earth", size: "10⁷ m (~12,700 km)", description: "Our home planet", color: "#22c55e", visualSize: 120 }, // green-500
+        { name: "Sun", size: "10⁹ m (~1.4M km)", description: "Our local star", color: "#facc15", visualSize: 150 }, // yellow-500
+        { name: "Solar System (to Neptune)", size: "10¹³ m", description: "Sun, planets, and other objects", color: "#a78bfa", visualSize: 180 }, // violet-400
+        { name: "Nearest Star (Proxima Centauri)", size: "10¹⁶ m (~4 light-years)", description: "Closest star beyond our Sun", color: "#f472b6", visualSize: 200 }, // pink-400
+        { name: "Milky Way Galaxy", size: "10²¹ m (~100,000 light-years)", description: "Our home galaxy", color: "#7dd3fc", visualSize: 230 }, // sky-300
+        { name: "Local Group (Galaxies)", size: "10²³ m (~10M light-years)", description: "Group of nearby galaxies", color: "#818cf8", visualSize: 250 }, // indigo-400
+        { name: "Observable Universe", size: "10²⁶ m (~93B light-years)", description: "All we can currently see", color: "#e879f9", visualSize: 280 }, // fuchsia-400
+        { name: "Multiverse (Hypothetical)", size: "Unknown (Vastly Larger)", description: "Theoretical collection of universes", color: "#ffffff", visualSize: 300 } // white
+    ];
+
+    // --- State ---
+    let currentScaleIndex = 3; // Start at Human scale
+
+    // --- DOM Elements ---
+    const scaleObject = document.getElementById('scale-object');
+    const scaleName = document.getElementById('scale-name');
+    const scaleSize = document.getElementById('scale-size');
+    const scaleDescription = document.getElementById('scale-description');
+    const zoomInBtn = document.getElementById('zoom-in-btn');
+    const zoomOutBtn = document.getElementById('zoom-out-btn');
+    const visualizationArea = document.getElementById('visualization-area');
+
+    // --- Functions ---
+    function updateDisplay() {
+        const currentScale = scales[currentScaleIndex];
+        const visualAreaWidth = visualizationArea.clientWidth; // Get width for scaling
+
+        // Clamp visual size to prevent it exceeding the container too much
+        const maxVisualSize = visualAreaWidth * 0.9; // Allow object to be up to 90% of container width
+        const clampedVisualSize = Math.min(currentScale.visualSize, maxVisualSize);
+
+        // Update text content
+        scaleName.textContent = currentScale.name;
+        scaleSize.textContent = `Approximate Size: ${currentScale.size}`;
+        scaleDescription.textContent = currentScale.description;
+
+        // Update visual representation (scale object)
+        scaleObject.style.width = `${clampedVisualSize}px`;
+        scaleObject.style.height = `${clampedVisualSize}px`;
+        scaleObject.style.backgroundColor = currentScale.color;
+        // Optional: Add text or emoji inside the circle based on scale
+        // scaleObject.textContent = currentScale.emoji || '';
+
+        // Update button states
+        zoomInBtn.disabled = currentScaleIndex >= scales.length - 1;
+        zoomOutBtn.disabled = currentScaleIndex <= 0;
+
+        // Add/Remove pulse animation for the largest scale (Multiverse)
+        if (currentScale.name === "Multiverse (Hypothetical)") {
+            scaleObject.classList.add('animate-pulse');
+        } else {
+            scaleObject.classList.remove('animate-pulse');
+        }
+    }
+
+    function zoomIn() {
+        if (currentScaleIndex < scales.length - 1) {
+            currentScaleIndex++;
+            updateDisplay();
+        }
+    }
+
+    function zoomOut() {
+        if (currentScaleIndex > 0) {
+            currentScaleIndex--;
+            updateDisplay();
+        }
+    }
+
+    // --- Event Listeners ---
+    zoomInBtn.addEventListener('click', zoomIn);
+    zoomOutBtn.addEventListener('click', zoomOut);
+
+    // Handle window resize to adjust scaling if needed
+    // (Simple version: just re-update display which recalculates based on current width)
+    window.addEventListener('resize', updateDisplay);
+
+
+    // --- Initial Setup ---
+    // Wait for fonts and layout to be ready before initial display
+    window.onload = () => {
+        updateDisplay();
+    }
+</script>
+{% endblock %}
